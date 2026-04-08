@@ -1,0 +1,166 @@
+[
+  {
+    "id": "listing-seed-1",
+    "title": "Sunrise Scholar PG",
+    "rent": 10500,
+    "location": "Kota",
+    "roomType": "Double Sharing",
+    "genderPreference": "Female",
+    "furnished": "Furnished",
+    "description": "Bright study-friendly PG with biometric entry, daily meals, power backup, and coaching shuttle access.",
+    "contact": "+91 98765 10001",
+    "imageUrl": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+    "availability": "Available now",
+    "ownerId": "seed-owner-1",
+    "ownerName": "Neha Residency",
+    "createdAt": "2026-04-01T07:30:00.000Z",
+    "reviews": [
+      {
+        "id": "review-1",
+        "userId": "seed-reviewer-1",
+        "userName": "Ishita",
+        "rating": 5,
+        "comment": "Very clean rooms and the warden is genuinely helpful during exam season.",
+        "createdAt": "2026-04-03T10:00:00.000Z"
+      },
+      {
+        "id": "review-2",
+        "userId": "seed-reviewer-2",
+        "userName": "Pallavi",
+        "rating": 4,
+        "comment": "Food quality is solid and the location is perfect for classes.",
+        "createdAt": "2026-04-05T17:15:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "listing-seed-2",
+    "title": "Urban Nest Student Stay",
+    "rent": 16500,
+    "location": "Pune",
+    "roomType": "Single",
+    "genderPreference": "Any",
+    "furnished": "Furnished",
+    "description": "Single occupancy rooms with high-speed Wi-Fi, laundry, study lounge, and metro connectivity.",
+    "contact": "+91 98765 10002",
+    "imageUrl": "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
+    "availability": "Few beds left",
+    "ownerId": "seed-owner-2",
+    "ownerName": "Urban Nest",
+    "createdAt": "2026-04-02T09:00:00.000Z",
+    "reviews": [
+      {
+        "id": "review-3",
+        "userId": "seed-reviewer-3",
+        "userName": "Aditya",
+        "rating": 4,
+        "comment": "Fast internet and peaceful common room for coding sessions.",
+        "createdAt": "2026-04-04T12:20:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "listing-seed-3",
+    "title": "Metro Vista Co-Living",
+    "rent": 18900,
+    "location": "Bengaluru",
+    "roomType": "Studio",
+    "genderPreference": "Any",
+    "furnished": "Furnished",
+    "description": "Premium studio-style PG with attached bath, smart lock, gaming lounge, and rooftop cafe.",
+    "contact": "+91 98765 10003",
+    "imageUrl": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+    "availability": "Available from next month",
+    "ownerId": "seed-owner-3",
+    "ownerName": "Metro Vista",
+    "createdAt": "2026-04-03T13:40:00.000Z",
+    "reviews": [
+      {
+        "id": "review-4",
+        "userId": "seed-reviewer-4",
+        "userName": "Karan",
+        "rating": 5,
+        "comment": "Feels more like a compact apartment than a PG.",
+        "createdAt": "2026-04-06T15:40:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "listing-seed-4",
+    "title": "Campus Corner Residency",
+    "rent": 13200,
+    "location": "Hyderabad",
+    "roomType": "Triple Sharing",
+    "genderPreference": "Male",
+    "furnished": "Unfurnished",
+    "description": "Budget-friendly stay near engineering colleges with meal plan, study area, and secure parking.",
+    "contact": "+91 98765 10004",
+    "imageUrl": "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
+    "availability": "Available now",
+    "ownerId": "seed-owner-4",
+    "ownerName": "Campus Corner",
+    "createdAt": "2026-04-04T16:30:00.000Z",
+    "reviews": [
+      {
+        "id": "review-5",
+        "userId": "seed-reviewer-5",
+        "userName": "Manoj",
+        "rating": 4,
+        "comment": "Affordable and close to campus, though unfurnished as listed.",
+        "createdAt": "2026-04-07T09:10:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "listing-seed-5",
+    "title": "Pink City Study Suites",
+    "rent": 11800,
+    "location": "Jaipur",
+    "roomType": "Double Sharing",
+    "genderPreference": "Female",
+    "furnished": "Furnished",
+    "description": "Warm and airy PG with curated study pods, nutritious meals, and weekend housekeeping.",
+    "contact": "+91 98765 10005",
+    "imageUrl": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+    "availability": "Available now",
+    "ownerId": "seed-owner-5",
+    "ownerName": "Pink City Stays",
+    "createdAt": "2026-04-05T10:25:00.000Z",
+    "reviews": [
+      {
+        "id": "review-6",
+        "userId": "seed-reviewer-6",
+        "userName": "Ritika",
+        "rating": 5,
+        "comment": "Beautiful common areas and the meals are much better than expected.",
+        "createdAt": "2026-04-06T18:50:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "listing-seed-6",
+    "title": "Capital Hub Living",
+    "rent": 17500,
+    "location": "Delhi",
+    "roomType": "Single",
+    "genderPreference": "Any",
+    "furnished": "Furnished",
+    "description": "Modern student stay close to libraries and coaching centres with AC rooms and app-based entry.",
+    "contact": "+91 98765 10006",
+    "imageUrl": "https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1200&q=80",
+    "availability": "Few beds left",
+    "ownerId": "seed-owner-6",
+    "ownerName": "Capital Hub",
+    "createdAt": "2026-04-06T08:10:00.000Z",
+    "reviews": [
+      {
+        "id": "review-7",
+        "userId": "seed-reviewer-7",
+        "userName": "Zeeshan",
+        "rating": 4,
+        "comment": "Great security and connectivity, but book early because it fills up fast.",
+        "createdAt": "2026-04-07T20:15:00.000Z"
+      }
+    ]
+  }
+]

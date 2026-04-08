@@ -1,0 +1,66 @@
+[
+  {
+    "id": "rm-seed-1",
+    "userId": "seed-user-1",
+    "userName": "Aisha Khan",
+    "location": "Kota",
+    "budget": 12000,
+    "gender": "Female",
+    "habits": [
+      "Early riser",
+      "Non-smoker",
+      "Study-focused"
+    ],
+    "notes": "Looking for a calm roommate who is comfortable with quiet study hours and shared cleaning schedules.",
+    "contact": "aisha.khan@example.com",
+    "createdAt": "2026-04-01T09:00:00.000Z"
+  },
+  {
+    "id": "rm-seed-2",
+    "userId": "seed-user-2",
+    "userName": "Rohan Mehta",
+    "location": "Pune",
+    "budget": 15000,
+    "gender": "Male",
+    "habits": [
+      "Gym",
+      "Vegetarian",
+      "Night owl"
+    ],
+    "notes": "Need a friendly flatmate who is okay with late-night project work and a tidy shared space.",
+    "contact": "rohan.mehta@example.com",
+    "createdAt": "2026-04-02T11:30:00.000Z"
+  },
+  {
+    "id": "rm-seed-3",
+    "userId": "seed-user-3",
+    "userName": "Sneha Verma",
+    "location": "Bengaluru",
+    "budget": 18000,
+    "gender": "Any",
+    "habits": [
+      "Remote classes",
+      "Cooking",
+      "Weekend traveler"
+    ],
+    "notes": "Open to sharing with anyone respectful and easygoing, especially near metro-connected areas.",
+    "contact": "sneha.verma@example.com",
+    "createdAt": "2026-04-04T14:15:00.000Z"
+  },
+  {
+    "id": "rm-seed-4",
+    "userId": "seed-user-4",
+    "userName": "Arjun Nair",
+    "location": "Hyderabad",
+    "budget": 14000,
+    "gender": "Male",
+    "habits": [
+      "Non-smoker",
+      "Cricket",
+      "Early sleeper"
+    ],
+    "notes": "Searching for someone responsible who prefers a peaceful room and regular bill sharing.",
+    "contact": "arjun.nair@example.com",
+    "createdAt": "2026-04-05T08:45:00.000Z"
+  }
+]

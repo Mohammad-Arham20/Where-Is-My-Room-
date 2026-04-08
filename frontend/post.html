@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Post Listing | PG & Roommate Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body data-page="post">
+    <header class="site-header glass-card">
+      <a href="/" class="brand-mark">PG & Roommate Finder</a>
+      <nav class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/post" class="nav-link active">Post</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/dashboard?tab=favorites" class="nav-link">My Favorites</a>
+      </nav>
+      <div class="nav-actions">
+        <div class="user-chip hidden" data-auth-user></div>
+        <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
+          Login / Register
+        </button>
+        <button class="btn btn-ghost auth-logout-btn hidden" data-auth-action="logout">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="section-header">
+        <div>
+          <span class="eyebrow">Create opportunities</span>
+          <h1>Post a PG listing or your roommate preferences</h1>
+        </div>
+        <p id="postStatusMessage">Login to publish listings and roommate requirements.</p>
+      </section>
+
+      <section class="two-column-layout">
+        <article class="glass-card form-card">
+          <div class="card-title-row">
+            <div>
+              <span class="eyebrow">Listing form</span>
+              <h2>Publish a PG</h2>
+            </div>
+            <span class="soft-badge">Glass card UI</span>
+          </div>
+
+          <form id="listingForm" class="stack-form">
+            <label class="field-group">
+              <span>Title</span>
+              <input type="text" name="title" placeholder="Cozy Study PG near campus" required />
+            </label>
+
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Rent</span>
+                <input type="number" name="rent" min="1000" step="100" placeholder="12000" required />
+              </label>
+              <label class="field-group">
+                <span>Location</span>
+                <select name="location" required>
+                  <option value="">Choose location</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Bengaluru">Bengaluru</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                  <option value="Jaipur">Jaipur</option>
+                  <option value="Kota">Kota</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Room type</span>
+                <select name="roomType" required>
+                  <option value="">Select</option>
+                  <option value="Single">Single</option>
+                  <option value="Double Sharing">Double Sharing</option>
+                  <option value="Triple Sharing">Triple Sharing</option>
+                  <option value="Studio">Studio</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>Gender preference</span>
+                <select name="genderPreference" required>
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Any">Any</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Furnished</span>
+                <select name="furnished" required>
+                  <option value="">Select</option>
+                  <option value="Furnished">Furnished</option>
+                  <option value="Unfurnished">Unfurnished</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>Contact</span>
+                <input type="text" name="contact" placeholder="+91 98765 43210" required />
+              </label>
+            </div>
+
+            <label class="field-group">
+              <span>Description</span>
+              <textarea
+                name="description"
+                rows="5"
+                placeholder="Describe amenities, nearby colleges, food, safety, and room atmosphere."
+                required
+              ></textarea>
+            </label>
+
+            <label class="field-group">
+              <span>Image URL</span>
+              <input type="url" name="imageUrl" placeholder="https://images.unsplash.com/..." />
+            </label>
+
+            <button class="btn btn-primary btn-block" type="submit">Add new listing</button>
+          </form>
+        </article>
+
+        <article class="glass-card form-card">
+          <div class="card-title-row">
+            <div>
+              <span class="eyebrow">Roommate matching</span>
+              <h2>Post your roommate requirements</h2>
+            </div>
+            <span class="soft-badge">Key feature</span>
+          </div>
+
+          <form id="roommateForm" class="stack-form">
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Location</span>
+                <select name="location" required>
+                  <option value="">Choose location</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Bengaluru">Bengaluru</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                  <option value="Jaipur">Jaipur</option>
+                  <option value="Kota">Kota</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>Budget</span>
+                <input type="number" name="budget" min="1000" step="100" placeholder="14000" required />
+              </label>
+            </div>
+
+            <label class="field-group">
+              <span>Gender</span>
+              <select name="gender" required>
+                <option value="">Select preference</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Any">Any</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span>Habits</span>
+              <input
+                type="text"
+                name="habits"
+                placeholder="Early riser, Non-smoker, Study-focused"
+                required
+              />
+            </label>
+
+            <label class="field-group">
+              <span>Notes</span>
+              <textarea
+                name="notes"
+                rows="5"
+                placeholder="Share what kind of roommate and room environment you want."
+                required
+              ></textarea>
+            </label>
+
+            <label class="field-group">
+              <span>Contact</span>
+              <input type="text" name="contact" placeholder="email or phone number" required />
+            </label>
+
+            <button class="btn btn-primary btn-block" type="submit">Find roommate matches</button>
+          </form>
+
+          <div class="glass-inset tips-box">
+            <h3>Matching logic</h3>
+            <p>
+              Matches are ranked using location, budget proximity, gender preference, and shared
+              habits for a simple but useful compatibility score.
+            </p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="authModal">
+      <div class="modal-panel glass-card">
+        <button class="modal-close" data-close-modal="authModal" aria-label="Close authentication modal">
+          x
+        </button>
+        <div class="modal-header">
+          <span class="eyebrow">Access your account</span>
+          <h3>Start posting today</h3>
+        </div>
+        <div class="auth-toggle">
+          <button class="tab-btn active" data-auth-tab="login">Login</button>
+          <button class="tab-btn" data-auth-tab="register">Register</button>
+        </div>
+
+        <form id="loginForm" class="auth-form active">
+          <label class="field-group">
+            <span>Email</span>
+            <input type="email" name="email" placeholder="student@example.com" required />
+          </label>
+          <label class="field-group">
+            <span>Password</span>
+            <input type="password" name="password" placeholder="Minimum 6 characters" required />
+          </label>
+          <button class="btn btn-primary btn-block" type="submit">Login</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+          <label class="field-group">
+            <span>Name</span>
+            <input type="text" name="name" placeholder="Your full name" required />
+          </label>
+          <label class="field-group">
+            <span>Email</span>
+            <input type="email" name="email" placeholder="student@example.com" required />
+          </label>
+          <label class="field-group">
+            <span>Password</span>
+            <input type="password" name="password" placeholder="Minimum 6 characters" required />
+          </label>
+          <button class="btn btn-primary btn-block" type="submit">Create account</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastContainer"></div>
+
+    <script src="/script.js"></script>
+  </body>
+</html>

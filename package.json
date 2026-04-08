@@ -1,0 +1,24 @@
+{
+  "name": "pg-roommate-finder",
+  "version": "1.0.0",
+  "description": "Production-ready PG & roommate finder web application for students.",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js"
+  },
+  "keywords": [
+    "pg",
+    "roommate",
+    "student-housing",
+    "express",
+    "mongodb-fallback"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

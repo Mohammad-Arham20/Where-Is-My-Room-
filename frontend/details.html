@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Listing Details | PG & Roommate Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body data-page="details">
+    <header class="site-header glass-card">
+      <a href="/" class="brand-mark">PG & Roommate Finder</a>
+      <nav class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/post" class="nav-link">Post</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/dashboard?tab=favorites" class="nav-link">My Favorites</a>
+      </nav>
+      <div class="nav-actions">
+        <div class="user-chip hidden" data-auth-user></div>
+        <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
+          Login / Register
+        </button>
+        <button class="btn btn-ghost auth-logout-btn hidden" data-auth-action="logout">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section id="listingDetails" class="details-shell glass-card loading-shell">
+        Loading listing details...
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="authModal">
+      <div class="modal-panel glass-card">
+        <button class="modal-close" data-close-modal="authModal" aria-label="Close authentication modal">
+          x
+        </button>
+        <div class="modal-header">
+          <span class="eyebrow">Access your account</span>
+          <h3>Continue to interact</h3>
+        </div>
+        <div class="auth-toggle">
+          <button class="tab-btn active" data-auth-tab="login">Login</button>
+          <button class="tab-btn" data-auth-tab="register">Register</button>
+        </div>
+
+        <form id="loginForm" class="auth-form active">
+          <label class="field-group">
+            <span>Email</span>
+            <input type="email" name="email" placeholder="student@example.com" required />
+          </label>
+          <label class="field-group">
+            <span>Password</span>
+            <input type="password" name="password" placeholder="Minimum 6 characters" required />
+          </label>
+          <button class="btn btn-primary btn-block" type="submit">Login</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+          <label class="field-group">
+            <span>Name</span>
+            <input type="text" name="name" placeholder="Your full name" required />
+          </label>
+          <label class="field-group">
+            <span>Email</span>
+            <input type="email" name="email" placeholder="student@example.com" required />
+          </label>
+          <label class="field-group">
+            <span>Password</span>
+            <input type="password" name="password" placeholder="Minimum 6 characters" required />
+          </label>
+          <button class="btn btn-primary btn-block" type="submit">Create account</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="contactModal">
+      <div class="modal-panel glass-card compact-modal">
+        <button class="modal-close" data-close-modal="contactModal" aria-label="Close contact modal">
+          x
+        </button>
+        <div class="modal-header">
+          <span class="eyebrow">Contact owner</span>
+          <h3 id="contactModalTitle">Owner details</h3>
+        </div>
+        <div class="contact-card glass-inset">
+          <p id="contactModalText">Contact information will appear here.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastContainer"></div>
+
+    <script src="/script.js"></script>
+  </body>
+</html>
