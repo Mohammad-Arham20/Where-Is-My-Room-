@@ -1,6 +1,6 @@
 const express = require("express");
 
-const ALLOWED_LOCATIONS = ["Delhi", "Pune", "Bengaluru", "Hyderabad", "Jaipur", "Kota"];
+const ALLOWED_LOCATIONS = ["Delhi", "Pune", "Bengaluru", "Hyderabad", "Jaipur", "Kota", "Rourkela"];
 const ALLOWED_ROOM_TYPES = ["Single", "Double Sharing", "Triple Sharing", "Studio"];
 
 module.exports = function listingRoutes(store, authRequired) {
@@ -116,6 +116,25 @@ module.exports = function listingRoutes(store, authRequired) {
     }
 
     return res.status(201).json({ listing, message: "Review added successfully." });
+  });
+
+  router.delete("/:id", authRequired, async (req, res) => {
+    const deletion = await store.deleteListing(req.params.id, req.user.id);
+
+    if (deletion.status === "not_found") {
+      return res.status(404).json({ message: "Listing not found." });
+    }
+
+    if (deletion.status === "forbidden") {
+      return res
+        .status(403)
+        .json({ message: "You can remove only those listings that you posted." });
+    }
+
+    return res.json({
+      listing: deletion.listing,
+      message: "Listing removed successfully.",
+    });
   });
 
   return router;

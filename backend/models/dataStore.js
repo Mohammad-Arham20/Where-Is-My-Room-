@@ -10,6 +10,7 @@ class DataStore {
       users: path.join(DATA_DIR, "users.json"),
       listings: path.join(DATA_DIR, "listings.json"),
       roommatePosts: path.join(DATA_DIR, "roommatePosts.json"),
+      chats: path.join(DATA_DIR, "chats.json"),
     };
   }
 
@@ -18,7 +19,123 @@ class DataStore {
       ensureJsonFile(this.files.users, []),
       ensureJsonFile(this.files.listings, []),
       ensureJsonFile(this.files.roommatePosts, []),
+      ensureJsonFile(this.files.chats, []),
     ]);
+    await this.ensureUserSchema();
+  }
+
+  buildDefaultProfile(name = "", email = "") {
+    const safeName = String(name || "").trim();
+    const fallbackAbout = safeName
+      ? `Hi, I am ${safeName}. I am currently looking for the right PG and roommate match.`
+      : "Student looking for the right PG and roommate match.";
+
+    return {
+      phone: "",
+      college: "",
+      course: "",
+      yearOfStudy: "",
+      preferredLocation: "",
+      monthlyBudget: null,
+      gender: "",
+      foodPreference: "",
+      sleepSchedule: "",
+      smokingPreference: "",
+      cleanlinessLevel: "",
+      hobbies: "",
+      aboutMe: fallbackAbout,
+      emergencyContactName: "",
+      emergencyContactPhone: "",
+      updatedAt: new Date().toISOString(),
+      accountEmail: String(email || "").trim().toLowerCase(),
+    };
+  }
+
+  withUserDefaults(user) {
+    if (!user) {
+      return null;
+    }
+
+    const baseProfile = this.buildDefaultProfile(user.name, user.email);
+    const profile =
+      user.profile && typeof user.profile === "object"
+        ? { ...baseProfile, ...user.profile }
+        : baseProfile;
+
+    return {
+      ...user,
+      favoriteListings: Array.isArray(user.favoriteListings) ? user.favoriteListings : [],
+      profile,
+    };
+  }
+
+  async ensureUserSchema() {
+    const users = await this.getUsers();
+    let changed = false;
+
+    const normalizedUsers = users.map((user) => {
+      const normalized = this.withUserDefaults(user);
+
+      if (
+        !Array.isArray(user.favoriteListings) ||
+        !user.profile ||
+        typeof user.profile !== "object"
+      ) {
+        changed = true;
+      } else {
+        const currentProfile = JSON.stringify(user.profile);
+        const normalizedProfile = JSON.stringify(normalized.profile);
+        if (currentProfile !== normalizedProfile) {
+          changed = true;
+        }
+      }
+
+      return normalized;
+    });
+
+    if (changed) {
+      await this.saveUsers(normalizedUsers);
+    }
+  }
+
+  normalizeProfileInput(payload = {}, user = {}) {
+    const text = (value, max = 180) => String(value ?? "").trim().slice(0, max);
+    const currentProfile = this.withUserDefaults(user)?.profile || this.buildDefaultProfile();
+    const nextText = (key, max) =>
+      Object.prototype.hasOwnProperty.call(payload, key)
+        ? text(payload[key], max)
+        : currentProfile[key];
+
+    let monthlyBudget = currentProfile.monthlyBudget;
+    if (Object.prototype.hasOwnProperty.call(payload, "monthlyBudget")) {
+      const rawBudget = String(payload.monthlyBudget ?? "").trim();
+      if (!rawBudget) {
+        monthlyBudget = null;
+      } else {
+        const parsed = Number(rawBudget);
+        monthlyBudget = Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
+      }
+    }
+
+    return {
+      phone: nextText("phone", 24),
+      college: nextText("college", 120),
+      course: nextText("course", 120),
+      yearOfStudy: nextText("yearOfStudy", 50),
+      preferredLocation: nextText("preferredLocation", 80),
+      monthlyBudget,
+      gender: nextText("gender", 40),
+      foodPreference: nextText("foodPreference", 80),
+      sleepSchedule: nextText("sleepSchedule", 80),
+      smokingPreference: nextText("smokingPreference", 80),
+      cleanlinessLevel: nextText("cleanlinessLevel", 80),
+      hobbies: nextText("hobbies", 220),
+      aboutMe: nextText("aboutMe", 800),
+      emergencyContactName: nextText("emergencyContactName", 120),
+      emergencyContactPhone: nextText("emergencyContactPhone", 24),
+      updatedAt: new Date().toISOString(),
+      accountEmail: String(user.email || "").trim().toLowerCase(),
+    };
   }
 
   sanitizeUser(user) {
@@ -26,7 +143,8 @@ class DataStore {
       return null;
     }
 
-    const { passwordHash, ...safeUser } = user;
+    const normalizedUser = this.withUserDefaults(user);
+    const { passwordHash, ...safeUser } = normalizedUser;
     return safeUser;
   }
 
@@ -79,24 +197,98 @@ class DataStore {
     return writeJson(this.files.roommatePosts, posts);
   }
 
+  async getChats() {
+    return readJson(this.files.chats, []);
+  }
+
+  async saveChats(chats) {
+    return writeJson(this.files.chats, chats);
+  }
+
+  normalizeParticipantIds(participantIds = []) {
+    return [...new Set(participantIds.map((id) => String(id || "").trim()).filter(Boolean))].sort();
+  }
+
+  buildChatPreview(chat, currentUserId, usersById) {
+    const participantIds = this.normalizeParticipantIds(chat.participantIds || []);
+    const otherUserId = participantIds.find((id) => id !== currentUserId) || participantIds[0] || "";
+    const otherUser = usersById.get(otherUserId);
+    const messages = Array.isArray(chat.messages) ? chat.messages : [];
+    const lastMessage = messages[messages.length - 1] || null;
+    const unreadCount = messages.reduce((count, message) => {
+      const readBy = Array.isArray(message.readBy) ? message.readBy : [];
+      if (message.senderId !== currentUserId && !readBy.includes(currentUserId)) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+
+    return {
+      id: chat.id,
+      otherUser: otherUser
+        ? {
+            id: otherUser.id,
+            name: otherUser.name,
+          }
+        : {
+            id: otherUserId,
+            name: "Unknown user",
+          },
+      participantIds,
+      listingId: chat.listingId || null,
+      listingTitle: chat.listingTitle || "",
+      updatedAt: chat.updatedAt || chat.createdAt,
+      createdAt: chat.createdAt,
+      unreadCount,
+      lastMessage: lastMessage
+        ? {
+            id: lastMessage.id,
+            text: lastMessage.text,
+            senderId: lastMessage.senderId,
+            createdAt: lastMessage.createdAt,
+          }
+        : null,
+    };
+  }
+
+  markChatMessagesAsRead(chat, userId) {
+    let changed = false;
+    const messages = Array.isArray(chat.messages) ? chat.messages : [];
+
+    messages.forEach((message) => {
+      message.readBy = Array.isArray(message.readBy) ? message.readBy : [];
+      if (message.senderId !== userId && !message.readBy.includes(userId)) {
+        message.readBy.push(userId);
+        changed = true;
+      }
+    });
+
+    return changed;
+  }
+
   async findUserByEmail(email) {
     const users = await this.getUsers();
-    return users.find((user) => user.email.toLowerCase() === email.toLowerCase()) || null;
+    const user = users.find((item) => item.email.toLowerCase() === email.toLowerCase()) || null;
+    return this.withUserDefaults(user);
   }
 
   async findUserById(userId) {
     const users = await this.getUsers();
-    return users.find((user) => user.id === userId) || null;
+    const user = users.find((item) => item.id === userId) || null;
+    return this.withUserDefaults(user);
   }
 
   async createUser({ name, email, passwordHash }) {
     const users = await this.getUsers();
+    const trimmedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
     const user = {
       id: crypto.randomUUID(),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
+      name: trimmedName,
+      email: normalizedEmail,
       passwordHash,
       favoriteListings: [],
+      profile: this.buildDefaultProfile(trimmedName, normalizedEmail),
       createdAt: new Date().toISOString(),
     };
 
@@ -104,6 +296,89 @@ class DataStore {
     await this.saveUsers(users);
 
     return this.sanitizeUser(user);
+  }
+
+  async getUserProfile(userId) {
+    const user = await this.findUserById(userId);
+    if (!user) {
+      return null;
+    }
+
+    return this.withUserDefaults(user).profile;
+  }
+
+  async syncUserNameAcrossData(userId, userName) {
+    const [listings, roommatePosts] = await Promise.all([
+      this.getRawListings(),
+      this.getRoommatePosts(),
+    ]);
+
+    let listingsChanged = false;
+    let roommatePostsChanged = false;
+
+    listings.forEach((listing) => {
+      if (listing.ownerId === userId && listing.ownerName !== userName) {
+        listing.ownerName = userName;
+        listingsChanged = true;
+      }
+
+      if (Array.isArray(listing.reviews)) {
+        listing.reviews.forEach((review) => {
+          if (review.userId === userId && review.userName !== userName) {
+            review.userName = userName;
+            listingsChanged = true;
+          }
+        });
+      }
+    });
+
+    roommatePosts.forEach((post) => {
+      if (post.userId === userId && post.userName !== userName) {
+        post.userName = userName;
+        roommatePostsChanged = true;
+      }
+    });
+
+    if (listingsChanged) {
+      await this.saveListings(listings);
+    }
+
+    if (roommatePostsChanged) {
+      await this.saveRoommatePosts(roommatePosts);
+    }
+  }
+
+  async updateUserProfile(userId, payload = {}) {
+    const users = await this.getUsers();
+    const userIndex = users.findIndex((user) => user.id === userId);
+
+    if (userIndex < 0) {
+      return null;
+    }
+
+    const currentUser = this.withUserDefaults(users[userIndex]);
+    const nextName = String(payload.name ?? currentUser.name).trim();
+    if (!nextName) {
+      return null;
+    }
+
+    const updatedUser = {
+      ...currentUser,
+      name: nextName.slice(0, 90),
+      profile: {
+        ...currentUser.profile,
+        ...this.normalizeProfileInput(payload, currentUser),
+      },
+    };
+
+    users[userIndex] = updatedUser;
+    await this.saveUsers(users);
+
+    if (updatedUser.name !== currentUser.name) {
+      await this.syncUserNameAcrossData(userId, updatedUser.name);
+    }
+
+    return this.sanitizeUser(updatedUser);
   }
 
   async createListing({
@@ -216,6 +491,42 @@ class DataStore {
     return this.withListingMeta(listing);
   }
 
+  async deleteListing(listingId, ownerId) {
+    const listings = await this.getRawListings();
+    const listingIndex = listings.findIndex((item) => item.id === listingId);
+
+    if (listingIndex < 0) {
+      return { status: "not_found" };
+    }
+
+    const listing = listings[listingIndex];
+    if (listing.ownerId !== ownerId) {
+      return { status: "forbidden" };
+    }
+
+    const [removedListing] = listings.splice(listingIndex, 1);
+    await this.saveListings(listings);
+
+    const users = await this.getUsers();
+    let usersChanged = false;
+    users.forEach((user) => {
+      const favorites = Array.isArray(user.favoriteListings) ? user.favoriteListings : [];
+      if (favorites.includes(listingId)) {
+        user.favoriteListings = favorites.filter((favoriteId) => favoriteId !== listingId);
+        usersChanged = true;
+      }
+    });
+
+    if (usersChanged) {
+      await this.saveUsers(users);
+    }
+
+    return {
+      status: "deleted",
+      listing: this.withListingMeta(removedListing),
+    };
+  }
+
   async createRoommatePost({
     userId,
     userName,
@@ -310,6 +621,141 @@ class DataStore {
         matches,
       };
     });
+  }
+
+  async getChatSummaries(userId) {
+    const [chats, users] = await Promise.all([this.getChats(), this.getUsers()]);
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    return chats
+      .filter((chat) => (chat.participantIds || []).includes(userId))
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt || right.createdAt || 0).getTime() -
+          new Date(left.updatedAt || left.createdAt || 0).getTime()
+      )
+      .map((chat) => this.buildChatPreview(chat, userId, usersById));
+  }
+
+  async startChat({
+    requesterId,
+    recipientId,
+    listingId = null,
+    listingTitle = "",
+  }) {
+    const participantIds = this.normalizeParticipantIds([requesterId, recipientId]);
+    const targetListingId = listingId || null;
+    const chats = await this.getChats();
+
+    const existingChat = chats.find((chat) => {
+      const chatParticipants = this.normalizeParticipantIds(chat.participantIds || []);
+      if (chatParticipants.length !== participantIds.length) {
+        return false;
+      }
+
+      const sameParticipants = chatParticipants.every((id, index) => id === participantIds[index]);
+      return sameParticipants && (chat.listingId || null) === targetListingId;
+    });
+
+    if (existingChat) {
+      return existingChat;
+    }
+
+    const now = new Date().toISOString();
+    const nextChat = {
+      id: crypto.randomUUID(),
+      participantIds,
+      listingId: targetListingId,
+      listingTitle: String(listingTitle || "").trim(),
+      createdAt: now,
+      updatedAt: now,
+      messages: [],
+    };
+
+    chats.unshift(nextChat);
+    await this.saveChats(chats);
+    return nextChat;
+  }
+
+  async getChatDetailForUser(chatId, userId, options = {}) {
+    const shouldMarkRead = Boolean(options.markRead);
+    const chats = await this.getChats();
+    const chatIndex = chats.findIndex((chat) => chat.id === chatId);
+
+    if (chatIndex < 0) {
+      return null;
+    }
+
+    const chat = chats[chatIndex];
+    const participantIds = this.normalizeParticipantIds(chat.participantIds || []);
+
+    if (!participantIds.includes(userId)) {
+      return null;
+    }
+
+    let changed = false;
+    if (shouldMarkRead) {
+      changed = this.markChatMessagesAsRead(chat, userId);
+    }
+
+    if (changed) {
+      chats[chatIndex] = chat;
+      await this.saveChats(chats);
+    }
+
+    const users = await this.getUsers();
+    const usersById = new Map(users.map((user) => [user.id, user]));
+    const preview = this.buildChatPreview(chat, userId, usersById);
+    const messages = (Array.isArray(chat.messages) ? chat.messages : []).map((message) => ({
+      id: message.id,
+      text: message.text,
+      senderId: message.senderId,
+      senderName: usersById.get(message.senderId)?.name || "User",
+      createdAt: message.createdAt,
+      isMine: message.senderId === userId,
+    }));
+
+    return {
+      ...preview,
+      messages,
+    };
+  }
+
+  async addChatMessage({ chatId, senderId, text }) {
+    const chats = await this.getChats();
+    const chatIndex = chats.findIndex((chat) => chat.id === chatId);
+
+    if (chatIndex < 0) {
+      return null;
+    }
+
+    const chat = chats[chatIndex];
+    const participantIds = this.normalizeParticipantIds(chat.participantIds || []);
+    if (!participantIds.includes(senderId)) {
+      return null;
+    }
+
+    const trimmedText = String(text || "").trim();
+    if (!trimmedText) {
+      return null;
+    }
+
+    const now = new Date().toISOString();
+    const nextMessage = {
+      id: crypto.randomUUID(),
+      senderId,
+      text: trimmedText.slice(0, 1200),
+      createdAt: now,
+      readBy: [senderId],
+    };
+
+    chat.messages = Array.isArray(chat.messages) ? chat.messages : [];
+    chat.messages.push(nextMessage);
+    chat.updatedAt = now;
+    chats[chatIndex] = chat;
+
+    await this.saveChats(chats);
+    return nextMessage;
   }
 
   async getDashboardSummary(userId) {

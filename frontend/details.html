@@ -13,16 +13,19 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body data-page="details">
-    <header class="site-header glass-card">
+    <div class="header-shell">
+      <button class="nav-back-btn glass-card" data-nav-back type="button">Back</button>
+      <header class="site-header glass-card">
       <a href="/" class="brand-mark">PG & Roommate Finder</a>
       <nav class="nav-links">
         <a href="/" class="nav-link">Home</a>
         <a href="/post" class="nav-link">Post</a>
         <a href="/dashboard" class="nav-link">Dashboard</a>
-        <a href="/dashboard?tab=favorites" class="nav-link">My Favorites</a>
+        <a href="/chats.html" class="nav-link">Chats</a>
+        <a href="/favorites.html" class="nav-link">My Favorites</a>
       </nav>
       <div class="nav-actions">
-        <div class="user-chip hidden" data-auth-user></div>
+        <button class="user-chip hidden" data-auth-user data-open-profile type="button"></button>
         <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
           Login / Register
         </button>
@@ -30,7 +33,8 @@
           Logout
         </button>
       </div>
-    </header>
+      </header>
+    </div>
 
     <main class="page-shell">
       <section id="listingDetails" class="details-shell glass-card loading-shell">

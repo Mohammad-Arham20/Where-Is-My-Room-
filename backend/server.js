@@ -6,6 +6,7 @@ const authRoutes = require("./routes/auth");
 const listingRoutes = require("./routes/listings");
 const roommateRoutes = require("./routes/roommates");
 const dashboardRoutes = require("./routes/dashboard");
+const chatRoutes = require("./routes/chats");
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "pg-roommate-finder-secret";
@@ -18,8 +19,8 @@ async function start() {
 
   await store.init();
 
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: "15mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "15mb" }));
   app.use(express.static(FRONTEND_DIR));
 
   app.get("/health", (req, res) => {
@@ -30,6 +31,7 @@ async function start() {
   app.use("/api/listings", listingRoutes(store, authRequired));
   app.use("/api/roommates", roommateRoutes(store, authRequired));
   app.use("/api/dashboard", dashboardRoutes(store, authRequired));
+  app.use("/api/chats", chatRoutes(store, authRequired));
 
   app.get("/", (req, res) => {
     res.sendFile(path.join(FRONTEND_DIR, "index.html"));
@@ -47,9 +49,32 @@ async function start() {
     res.sendFile(path.join(FRONTEND_DIR, "dashboard.html"));
   });
 
+  app.get(["/chats", "/chats.html"], (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIR, "chats.html"));
+  });
+
+  app.get(["/favorites", "/favorites.html"], (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIR, "favorites.html"));
+  });
+
+  app.get(["/profile", "/profile.html"], (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIR, "profile.html"));
+  });
+
   app.use((err, req, res, next) => {
     console.error(err);
-    res.status(500).json({ message: "Something went wrong on the server." });
+    if (err?.type === "entity.too.large" || err?.status === 413) {
+      return res.status(413).json({
+        message: "Uploaded image is too large. Please choose an image under 5MB.",
+      });
+    }
+
+    const status = err?.status || 500;
+    if (status >= 500) {
+      return res.status(status).json({ message: "Something went wrong on the server." });
+    }
+
+    return res.status(status).json({ message: err?.message || "Request failed." });
   });
 
   app.listen(PORT, () => {

@@ -3,6 +3,11 @@ const STORAGE_KEYS = {
   user: "pgFinderUser",
 };
 
+const SESSION_KEYS = {
+  suppressBackOnNextPage: "pgSuppressBackOnNextPage",
+  navPageTransition: "pgNavPageTransition",
+};
+
 const appState = {
   token: localStorage.getItem(STORAGE_KEYS.token) || "",
   user: readStoredUser(),
@@ -10,15 +15,24 @@ const appState = {
   favorites: new Set(),
   currentListing: null,
   dashboard: null,
+  chatSummaries: [],
+  activeChatId: "",
+  chatPollTimer: null,
+  profileData: null,
+  profileEditing: true,
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  initAnimatedBackground();
   bindGlobalInteractions();
+  updateBackButtonVisibility();
   bindAuthForms();
   updateAuthUI();
   await restoreSession();
   await initializeCurrentPage();
+  applyNavPageTransition();
+  window.setTimeout(() => {
+    initAnimatedBackground();
+  }, 160);
 });
 
 function readStoredUser() {
@@ -39,9 +53,12 @@ function setSession(token, user) {
 }
 
 function clearSession() {
+  stopChatPolling();
   appState.token = "";
   appState.user = null;
   appState.favorites = new Set();
+  appState.chatSummaries = [];
+  appState.activeChatId = "";
   localStorage.removeItem(STORAGE_KEYS.token);
   localStorage.removeItem(STORAGE_KEYS.user);
   updateAuthUI();
@@ -55,14 +72,14 @@ function initAnimatedBackground() {
   const field = document.createElement("div");
   field.className = "bubble-field";
 
-  for (let index = 0; index < 22; index += 1) {
+  for (let index = 0; index < 40; index += 1) {
     const bubble = document.createElement("span");
     bubble.className = "bubble";
-    bubble.style.setProperty("--size", `${randomBetween(48, 160)}px`);
+    bubble.style.setProperty("--size", `${randomBetween(22, 90)}px`);
     bubble.style.setProperty("--left", `${randomBetween(0, 100)}%`);
     bubble.style.setProperty("--duration", `${randomBetween(18, 38)}s`);
     bubble.style.setProperty("--delay", `${randomBetween(-24, 0)}s`);
-    bubble.style.setProperty("--opacity", `${randomBetween(0.12, 0.32)}`);
+    bubble.style.setProperty("--opacity", `${randomBetween(0.16, 0.42)}`);
     field.appendChild(bubble);
   }
 
@@ -75,6 +92,45 @@ function randomBetween(min, max) {
 
 function bindGlobalInteractions() {
   document.addEventListener("click", async (event) => {
+    const topNavLink = event.target.closest(".site-header .nav-links .nav-link");
+    if (topNavLink) {
+      sessionStorage.setItem(SESSION_KEYS.suppressBackOnNextPage, "1");
+      sessionStorage.setItem(SESSION_KEYS.navPageTransition, "1");
+    }
+
+    const navBackButton = event.target.closest("[data-nav-back]");
+    if (navBackButton) {
+      navBackButton.classList.remove("is-clicked");
+      void navBackButton.offsetWidth;
+      navBackButton.classList.add("is-clicked");
+      playBackButtonClickSound();
+      navBackButton.disabled = true;
+
+      window.setTimeout(() => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = "/";
+        }
+      }, 230);
+      return;
+    }
+
+    const openProfileButton = event.target.closest("[data-open-profile]");
+    if (openProfileButton) {
+      if (!appState.user) {
+        showToast("Please login to open your profile.", "error");
+        openModal("authModal");
+        switchAuthTab("login");
+        return;
+      }
+
+      if (window.location.pathname !== "/profile" && window.location.pathname !== "/profile.html") {
+        window.location.href = "/profile.html";
+      }
+      return;
+    }
+
     const openAuthButton = event.target.closest("[data-open-auth]");
     if (openAuthButton) {
       openModal("authModal");
@@ -107,10 +163,30 @@ function bindGlobalInteractions() {
       return;
     }
 
+    const profileToggleButton = event.target.closest("[data-profile-edit-toggle]");
+    if (profileToggleButton) {
+      toggleProfileEditor();
+      return;
+    }
+
     const favoriteButton = event.target.closest("[data-favorite-id]");
     if (favoriteButton) {
       event.preventDefault();
       await toggleFavorite(favoriteButton.dataset.favoriteId);
+      return;
+    }
+
+    const deleteListingButton = event.target.closest("[data-delete-listing-id]");
+    if (deleteListingButton) {
+      event.preventDefault();
+      await handleDeleteListing(deleteListingButton.dataset.deleteListingId);
+      return;
+    }
+
+    const openChatButton = event.target.closest("[data-open-chat]");
+    if (openChatButton) {
+      event.preventDefault();
+      await handleOpenChat(openChatButton);
       return;
     }
 
@@ -129,6 +205,19 @@ function bindGlobalInteractions() {
     const dashboardTabButton = event.target.closest("[data-dashboard-tab]");
     if (dashboardTabButton) {
       activateDashboardTab(dashboardTabButton.dataset.dashboardTab);
+      return;
+    }
+
+    const chatThreadButton = event.target.closest("[data-chat-thread-id]");
+    if (chatThreadButton) {
+      event.preventDefault();
+      await openChatThread(chatThreadButton.dataset.chatThreadId);
+      return;
+    }
+
+    const descriptionToggleButton = event.target.closest("[data-toggle-description]");
+    if (descriptionToggleButton) {
+      toggleDescriptionTile(descriptionToggleButton);
     }
   });
 
@@ -138,6 +227,41 @@ function bindGlobalInteractions() {
       closeModal("contactModal");
     }
   });
+}
+
+function applyNavPageTransition() {
+  const shouldAnimate = sessionStorage.getItem(SESSION_KEYS.navPageTransition) === "1";
+  if (!shouldAnimate || !document.body) {
+    return;
+  }
+
+  sessionStorage.removeItem(SESSION_KEYS.navPageTransition);
+  window.requestAnimationFrame(() => {
+    document.body.classList.add("nav-enter-transition");
+    window.setTimeout(() => {
+      document.body.classList.remove("nav-enter-transition");
+    }, 700);
+  });
+}
+
+function updateBackButtonVisibility() {
+  const backButtons = document.querySelectorAll("[data-nav-back]");
+  if (!backButtons.length) {
+    return;
+  }
+
+  const shouldSuppress = sessionStorage.getItem(SESSION_KEYS.suppressBackOnNextPage) === "1";
+  const canGoBack = window.history.length > 1;
+  const shouldShow = canGoBack && !shouldSuppress;
+
+  backButtons.forEach((button) => {
+    button.classList.toggle("hidden", !shouldShow);
+    button.disabled = !shouldShow;
+  });
+
+  if (shouldSuppress) {
+    sessionStorage.removeItem(SESSION_KEYS.suppressBackOnNextPage);
+  }
 }
 
 function bindAuthForms() {
@@ -233,6 +357,18 @@ async function initializeCurrentPage() {
   if (page === "dashboard") {
     await initializeDashboardPage();
   }
+
+  if (page === "chats") {
+    await initializeChatsPage();
+  }
+
+  if (page === "favorites") {
+    await initializeFavoritesPage();
+  }
+
+  if (page === "profile") {
+    await initializeProfilePage();
+  }
 }
 
 async function initializeHomePage() {
@@ -253,12 +389,125 @@ async function initializeHomePage() {
   }
 }
 
+function enhanceHomeFilterSelects(selectElements = []) {
+  if (!document.body.dataset.customSelectDismissBound) {
+    document.body.dataset.customSelectDismissBound = "true";
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".custom-select")) {
+        closeAllCustomSelects();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeAllCustomSelects();
+      }
+    });
+  }
+
+  selectElements.forEach((selectElement) => {
+    if (!selectElement || selectElement.dataset.customSelectBound) {
+      return;
+    }
+
+    selectElement.dataset.customSelectBound = "true";
+    selectElement.classList.add("custom-select-native");
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "custom-select";
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "custom-select-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+
+    const label = document.createElement("span");
+    label.className = "custom-select-label";
+    trigger.appendChild(label);
+
+    const menu = document.createElement("div");
+    menu.className = "custom-select-menu";
+    menu.setAttribute("role", "listbox");
+
+    Array.from(selectElement.options).forEach((optionElement) => {
+      const optionButton = document.createElement("button");
+      optionButton.type = "button";
+      optionButton.className = "custom-select-option";
+      optionButton.dataset.value = optionElement.value;
+      optionButton.textContent = optionElement.textContent || "";
+      optionButton.setAttribute("role", "option");
+      menu.appendChild(optionButton);
+    });
+
+    wrapper.append(trigger, menu);
+    selectElement.insertAdjacentElement("afterend", wrapper);
+
+    const syncCustomSelectState = () => {
+      const selectedOption = selectElement.options[selectElement.selectedIndex];
+      label.textContent = selectedOption?.textContent || "";
+
+      menu.querySelectorAll(".custom-select-option").forEach((optionButton) => {
+        const isActive = optionButton.dataset.value === selectElement.value;
+        optionButton.classList.toggle("active", isActive);
+        optionButton.setAttribute("aria-selected", String(isActive));
+      });
+    };
+
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const shouldOpen = !wrapper.classList.contains("open");
+      closeAllCustomSelects();
+      if (shouldOpen) {
+        wrapper.classList.add("open");
+        trigger.setAttribute("aria-expanded", "true");
+      }
+    });
+
+    menu.addEventListener("click", (event) => {
+      const optionButton = event.target.closest(".custom-select-option");
+      if (!optionButton) {
+        return;
+      }
+      const { value } = optionButton.dataset;
+      if (typeof value !== "string") {
+        return;
+      }
+
+      selectElement.value = value;
+      syncCustomSelectState();
+      closeAllCustomSelects();
+      selectElement.dispatchEvent(new Event("input", { bubbles: true }));
+      selectElement.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    selectElement.addEventListener("change", syncCustomSelectState);
+    selectElement.addEventListener("input", syncCustomSelectState);
+    selectElement.addEventListener("custom-select-sync", syncCustomSelectState);
+    syncCustomSelectState();
+  });
+}
+
+function closeAllCustomSelects() {
+  document.querySelectorAll(".custom-select.open").forEach((customSelect) => {
+    customSelect.classList.remove("open");
+    const trigger = customSelect.querySelector(".custom-select-trigger");
+    trigger?.setAttribute("aria-expanded", "false");
+  });
+}
+
+function syncCustomSelectUi(selectElement) {
+  selectElement?.dispatchEvent(new Event("custom-select-sync"));
+}
+
 function bindHomeFilters() {
   const searchInput = document.getElementById("searchInput");
   const budgetRange = document.getElementById("budgetRange");
   const locationFilter = document.getElementById("locationFilter");
   const roomTypeFilter = document.getElementById("roomTypeFilter");
   const clearFiltersButton = document.getElementById("clearFiltersBtn");
+
+  enhanceHomeFilterSelects([locationFilter, roomTypeFilter]);
 
   if (!searchInput || searchInput.dataset.bound) {
     syncBudgetLabel();
@@ -286,9 +535,11 @@ function bindHomeFilters() {
     }
     if (locationFilter) {
       locationFilter.value = "All";
+      syncCustomSelectUi(locationFilter);
     }
     if (roomTypeFilter) {
       roomTypeFilter.value = "All";
+      syncCustomSelectUi(roomTypeFilter);
     }
     syncBudgetLabel();
     renderHomeListings();
@@ -359,7 +610,8 @@ function renderListingsGrid(containerId, listings) {
   container.innerHTML = listings.map((listing) => listingCardMarkup(listing)).join("");
 }
 
-function listingCardMarkup(listing) {
+function listingCardMarkup(listing, options = {}) {
+  const showDelete = Boolean(options.showDelete);
   const favoriteActive = appState.favorites.has(listing.id) ? "active" : "";
   return `
     <article class="listing-card glass-card">
@@ -381,7 +633,14 @@ function listingCardMarkup(listing) {
         </div>
         <p>${escapeHtml(truncateText(listing.description, 110))}</p>
         <div class="card-action-row">
-          <a class="btn btn-primary" href="/details?id=${listing.id}">View details</a>
+          <div class="card-action-primary">
+            <a class="btn btn-primary" href="/details?id=${listing.id}">View details</a>
+            ${
+              showDelete
+                ? `<button class="btn btn-danger" type="button" data-delete-listing-id="${listing.id}">Remove</button>`
+                : ""
+            }
+          </div>
           <button class="favorite-btn ${favoriteActive}" data-favorite-id="${listing.id}" aria-label="Toggle favorite">
             ❤
           </button>
@@ -401,6 +660,43 @@ function initializePostPage() {
 
   const listingForm = document.getElementById("listingForm");
   const roommateForm = document.getElementById("roommateForm");
+  const listingImageFile = document.getElementById("listingImageFile");
+  const listingImagePreviewWrap = document.getElementById("listingImagePreviewWrap");
+  const listingImagePreview = document.getElementById("listingImagePreview");
+  const listingImageUrlInput = listingForm?.querySelector('input[name="imageUrl"]');
+
+  if (listingImageFile && !listingImageFile.dataset.bound) {
+    listingImageFile.dataset.bound = "true";
+    listingImageFile.addEventListener("change", () => {
+      const [file] = listingImageFile.files || [];
+      if (!file || !listingImagePreview || !listingImagePreviewWrap) {
+        listingImagePreviewWrap?.classList.add("hidden");
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      listingImagePreview.src = objectUrl;
+      listingImagePreviewWrap.classList.remove("hidden");
+    });
+  }
+
+  if (listingImageUrlInput && !listingImageUrlInput.dataset.bound) {
+    listingImageUrlInput.dataset.bound = "true";
+    listingImageUrlInput.addEventListener("input", () => {
+      const url = listingImageUrlInput.value.trim();
+      if (!url || !listingImagePreview || !listingImagePreviewWrap) {
+        if (!listingImageFile?.files?.length) {
+          listingImagePreviewWrap?.classList.add("hidden");
+        }
+        return;
+      }
+
+      if (!listingImageFile?.files?.length) {
+        listingImagePreview.src = url;
+        listingImagePreviewWrap.classList.remove("hidden");
+      }
+    });
+  }
 
   if (listingForm && !listingForm.dataset.bound) {
     listingForm.dataset.bound = "true";
@@ -411,15 +707,35 @@ function initializePostPage() {
         return;
       }
 
-      const payload = Object.fromEntries(new FormData(listingForm).entries());
+      const formData = new FormData(listingForm);
+      const payload = Object.fromEntries(formData.entries());
+      const selectedImageFile = formData.get("imageFile");
+      delete payload.imageFile;
 
       try {
+        if (selectedImageFile instanceof File && selectedImageFile.size > 0) {
+          if (selectedImageFile.size > 5 * 1024 * 1024) {
+            showToast("Please upload an image smaller than 5MB.", "error");
+            return;
+          }
+
+          payload.imageUrl = await fileToDataUrl(selectedImageFile);
+        } else {
+          payload.imageUrl = String(payload.imageUrl || "").trim();
+        }
+
         const response = await api("/api/listings", {
           method: "POST",
           body: payload,
           auth: true,
         });
         listingForm.reset();
+        if (listingImagePreviewWrap) {
+          listingImagePreviewWrap.classList.add("hidden");
+        }
+        if (listingImagePreview) {
+          listingImagePreview.src = "";
+        }
         showToast(response.message || "Listing added successfully.", "success");
         window.setTimeout(() => {
           window.location.href = `/details?id=${response.listing.id}`;
@@ -490,6 +806,10 @@ function renderDetailsPage() {
     return;
   }
 
+  const detailDescription = String(listing.description || "").trim();
+  const normalizedDescription = detailDescription || "No description provided.";
+  const descriptionNeedsToggle = normalizedDescription.length > 130;
+
   const reviewFormMarkup = appState.user
     ? `
       <form id="reviewForm" class="review-form">
@@ -552,11 +872,34 @@ function renderDetailsPage() {
               <span>Furnishing</span>
               <strong>${escapeHtml(listing.furnished)}</strong>
             </div>
+            <div class="glass-inset detail-extra-expenses">
+              <span>Extra expenses</span>
+              <strong class="meta-note">
+                Depends on usage. Ex. - Electricity bill, Water bill, etc.
+              </strong>
+            </div>
           </div>
 
-          <p>${escapeHtml(listing.description)}</p>
+          <div class="glass-inset detail-description-tile" data-description-tile>
+            <span>Description</span>
+            <p class="detail-description-text ${descriptionNeedsToggle ? "is-clamped" : ""}" data-description-text>
+              ${escapeHtml(normalizedDescription)}
+            </p>
+            ${
+              descriptionNeedsToggle
+                ? `
+                  <button class="detail-read-toggle" type="button" data-toggle-description aria-expanded="false">
+                    Read more
+                  </button>
+                `
+                : ""
+            }
+          </div>
 
           <div class="detail-actions">
+            <button class="btn btn-secondary" data-open-chat data-chat-listing-id="${listing.id}">
+              Chat with owner
+            </button>
             <button class="btn btn-primary" data-open-contact>Contact owner</button>
             <button class="favorite-btn ${appState.favorites.has(listing.id) ? "active" : ""}" data-favorite-id="${listing.id}">
               ❤
@@ -581,6 +924,18 @@ function renderDetailsPage() {
           <span class="eyebrow">Hosted by</span>
           <h3>${escapeHtml(listing.ownerName || "Property owner")}</h3>
           <p>Reach out directly to confirm availability, check amenities, and schedule a visit.</p>
+        </div>
+
+        <div class="review-card">
+          <span class="eyebrow">Facilities provided</span>
+          <ul class="facilities-list">
+            <li>Electricity (as per usage)</li>
+            <li>Laundry</li>
+            <li>Water supply</li>
+            <li>Parking</li>
+            <li>Wi-Fi</li>
+            <li>Power backup</li>
+          </ul>
         </div>
       </aside>
     </div>
@@ -616,6 +971,20 @@ function renderDetailsPage() {
   `;
 
   bindReviewForm();
+}
+
+function toggleDescriptionTile(button) {
+  const tile = button.closest("[data-description-tile]");
+  const descriptionText = tile?.querySelector("[data-description-text]");
+
+  if (!tile || !descriptionText) {
+    return;
+  }
+
+  const expanded = tile.classList.toggle("expanded");
+  descriptionText.classList.toggle("is-clamped", !expanded);
+  button.textContent = expanded ? "Show less" : "Read more";
+  button.setAttribute("aria-expanded", String(expanded));
 }
 
 function bindReviewForm() {
@@ -686,6 +1055,311 @@ function openContactModal() {
   openModal("contactModal");
 }
 
+async function initializeProfilePage() {
+  const authState = document.getElementById("profileAuthState");
+  const profileContent = document.getElementById("profileContent");
+  const greeting = document.getElementById("profileGreeting");
+  const subtitle = document.getElementById("profileSubtitle");
+
+  if (greeting) {
+    greeting.textContent = appState.user ? `${appState.user.name}'s Profile` : "Your profile";
+  }
+
+  if (subtitle) {
+    subtitle.textContent = "Keep your student and roommate preferences updated in one place.";
+  }
+
+  if (!appState.user) {
+    appState.profileData = null;
+    appState.profileEditing = true;
+    if (authState) {
+      authState.classList.remove("hidden");
+      authState.innerHTML = `
+        <h2>Profile unlocks after login</h2>
+        <p>Your personal details are visible and editable only for your account.</p>
+        <button class="btn btn-primary" data-open-auth data-auth-tab="login">Login / Register</button>
+      `;
+    }
+    profileContent?.classList.add("hidden");
+    return;
+  }
+
+  try {
+    const response = await api("/api/auth/profile", { auth: true });
+    const profile = response.profile || response.user?.profile || {};
+
+    if (response.user) {
+      appState.user = response.user;
+      localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(response.user));
+      updateAuthUI();
+      if (greeting) {
+        greeting.textContent = `${response.user.name}'s Profile`;
+      }
+    }
+
+    appState.profileData = profile;
+    appState.profileEditing = !isProfileComplete(profile);
+    renderProfileSummary(profile);
+    setProfileFormValues(profile);
+    bindProfileForm();
+    applyProfileLayoutState();
+
+    authState?.classList.add("hidden");
+    profileContent?.classList.remove("hidden");
+  } catch (error) {
+    appState.profileData = null;
+    appState.profileEditing = true;
+    if (authState) {
+      authState.classList.remove("hidden");
+      authState.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+    }
+    profileContent?.classList.add("hidden");
+  }
+}
+
+function renderProfileSummary(profile) {
+  const summaryCard = document.getElementById("profileSummaryCard");
+  if (!summaryCard) {
+    return;
+  }
+
+  const safeProfile = profile || {};
+  const profileComplete = isProfileComplete(safeProfile);
+  const budgetLabel =
+    safeProfile.monthlyBudget || safeProfile.monthlyBudget === 0
+      ? formatCurrency(Number(safeProfile.monthlyBudget))
+      : "Not set";
+  const lifestyleBits = [safeProfile.foodPreference, safeProfile.sleepSchedule, safeProfile.cleanlinessLevel]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  summaryCard.innerHTML = `
+    <div class="profile-summary-top">
+      <div class="profile-head">
+        <div class="profile-avatar">${escapeHtml(getNameInitials(appState.user?.name || "User"))}</div>
+        <div>
+          <h2>${escapeHtml(appState.user?.name || "Student User")}</h2>
+          <p>${escapeHtml(appState.user?.email || "")}</p>
+        </div>
+      </div>
+      ${
+        profileComplete
+          ? `
+            <button class="btn btn-secondary profile-edit-toggle-btn" type="button" data-profile-edit-toggle>
+              ${appState.profileEditing ? "Done" : "Edit"}
+            </button>
+          `
+          : `<span class="soft-badge profile-pending-badge">Complete profile to lock layout</span>`
+      }
+    </div>
+
+    <div class="profile-kv-grid">
+      ${profileKvItemMarkup("Phone", safeProfile.phone)}
+      ${profileKvItemMarkup("College", safeProfile.college)}
+      ${profileKvItemMarkup("Course", safeProfile.course)}
+      ${profileKvItemMarkup("Year", safeProfile.yearOfStudy)}
+      ${profileKvItemMarkup("Preferred location", safeProfile.preferredLocation)}
+      ${profileKvItemMarkup("Budget", budgetLabel)}
+      ${profileKvItemMarkup("Gender", safeProfile.gender)}
+      ${profileKvItemMarkup("Smoking", safeProfile.smokingPreference)}
+      ${profileKvItemMarkup("Lifestyle", lifestyleBits.join(" · "))}
+      ${profileKvItemMarkup("Hobbies", safeProfile.hobbies)}
+      ${profileKvItemMarkup("Emergency contact", [safeProfile.emergencyContactName, safeProfile.emergencyContactPhone].filter(Boolean).join(" · "))}
+    </div>
+
+    ${
+      profileComplete
+        ? `<p class="profile-complete-text">Profile completed. Use Edit to update details anytime.</p>`
+        : ""
+    }
+
+    <div class="profile-about glass-inset">
+      <span class="eyebrow">About me</span>
+      <p>${escapeHtml(profileDisplayValue(safeProfile.aboutMe, "Tell others a bit about your routine and preferences."))}</p>
+    </div>
+  `;
+}
+
+function hasProfileValue(value) {
+  return String(value ?? "").trim().length > 0;
+}
+
+function isProfileComplete(profile) {
+  const safeProfile = profile || {};
+  const requiredFields = [
+    "phone",
+    "college",
+    "course",
+    "yearOfStudy",
+    "preferredLocation",
+    "gender",
+    "foodPreference",
+    "sleepSchedule",
+    "smokingPreference",
+    "cleanlinessLevel",
+    "hobbies",
+    "aboutMe",
+    "emergencyContactName",
+    "emergencyContactPhone",
+  ];
+
+  const allTextReady = requiredFields.every((field) => hasProfileValue(safeProfile[field]));
+  const budgetReady = Number(safeProfile.monthlyBudget) > 0;
+  const nameReady = hasProfileValue(appState.user?.name);
+
+  return allTextReady && budgetReady && nameReady;
+}
+
+function applyProfileLayoutState() {
+  const profileContent = document.getElementById("profileContent");
+  if (!profileContent) {
+    return;
+  }
+
+  const profileComplete = isProfileComplete(appState.profileData || {});
+  const shouldCollapse = profileComplete && !appState.profileEditing;
+  profileContent.classList.toggle("profile-collapsed", shouldCollapse);
+}
+
+function toggleProfileEditor() {
+  const profileComplete = isProfileComplete(appState.profileData || {});
+  if (!profileComplete) {
+    showToast("Complete all profile fields first to enable compact profile mode.", "error");
+    appState.profileEditing = true;
+    applyProfileLayoutState();
+    return;
+  }
+
+  appState.profileEditing = !appState.profileEditing;
+  renderProfileSummary(appState.profileData || {});
+  applyProfileLayoutState();
+}
+
+function profileKvItemMarkup(label, value) {
+  return `
+    <div class="profile-kv-item glass-inset">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(profileDisplayValue(value))}</strong>
+    </div>
+  `;
+}
+
+function setProfileFormValues(profile) {
+  const form = document.getElementById("profileForm");
+  if (!form) {
+    return;
+  }
+
+  const safeProfile = profile || {};
+  const fields = [
+    "name",
+    "phone",
+    "college",
+    "course",
+    "yearOfStudy",
+    "preferredLocation",
+    "monthlyBudget",
+    "gender",
+    "foodPreference",
+    "sleepSchedule",
+    "smokingPreference",
+    "cleanlinessLevel",
+    "hobbies",
+    "aboutMe",
+    "emergencyContactName",
+    "emergencyContactPhone",
+  ];
+
+  fields.forEach((field) => {
+    const input = form.elements[field];
+    if (!input) {
+      return;
+    }
+
+    if (field === "name") {
+      input.value = appState.user?.name || "";
+      return;
+    }
+
+    if (field === "monthlyBudget") {
+      input.value =
+        safeProfile.monthlyBudget || safeProfile.monthlyBudget === 0
+          ? String(safeProfile.monthlyBudget)
+          : "";
+      return;
+    }
+
+    input.value = safeProfile[field] ? String(safeProfile[field]) : "";
+  });
+}
+
+function bindProfileForm() {
+  const form = document.getElementById("profileForm");
+  if (!form || form.dataset.bound) {
+    return;
+  }
+
+  form.dataset.bound = "true";
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!requireAuth()) {
+      return;
+    }
+
+    const payload = Object.fromEntries(new FormData(form).entries());
+    payload.name = String(payload.name || "").trim();
+
+    if (!payload.name) {
+      showToast("Name is required to save your profile.", "error");
+      return;
+    }
+
+    try {
+      const response = await api("/api/auth/profile", {
+        method: "PUT",
+        body: payload,
+        auth: true,
+      });
+
+      if (response.user) {
+        setSession(appState.token, response.user);
+      }
+
+      const updatedProfile = response.profile || response.user?.profile || {};
+      appState.profileData = updatedProfile;
+      appState.profileEditing = !isProfileComplete(updatedProfile);
+      setProfileFormValues(updatedProfile);
+      renderProfileSummary(updatedProfile);
+      applyProfileLayoutState();
+      showToast(response.message || "Profile updated successfully.", "success");
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  });
+}
+
+function profileDisplayValue(value, fallback = "Not set") {
+  const normalized = String(value ?? "").trim();
+  return normalized || fallback;
+}
+
+function getNameInitials(name) {
+  const words = String(name || "")
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (!words.length) {
+    return "U";
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 1).toUpperCase();
+  }
+
+  return `${words[0].slice(0, 1)}${words[1].slice(0, 1)}`.toUpperCase();
+}
+
 async function initializeDashboardPage() {
   const authState = document.getElementById("dashboardAuthState");
   const dashboardContent = document.getElementById("dashboardContent");
@@ -694,7 +1368,7 @@ async function initializeDashboardPage() {
     if (authState) {
       authState.innerHTML = `
         <h2>Your dashboard unlocks after login</h2>
-        <p>Track favorites, active posts, and roommate matches in one place.</p>
+        <p>Track active posts, listing activity, and roommate matches in one place.</p>
         <button class="btn btn-primary" data-open-auth data-auth-tab="login">Login / Register</button>
       `;
       authState.classList.remove("hidden");
@@ -721,12 +1395,367 @@ async function initializeDashboardPage() {
   }
 }
 
+async function initializeFavoritesPage() {
+  const authState = document.getElementById("favoritesAuthState");
+  const favoritesContent = document.getElementById("favoritesContent");
+  const favoritesCount = document.getElementById("favoritesCount");
+
+  if (!appState.user) {
+    if (authState) {
+      authState.innerHTML = `
+        <h2>Your favorites unlock after login</h2>
+        <p>Save listings you like and manage your shortlist from this page.</p>
+        <button class="btn btn-primary" data-open-auth data-auth-tab="login">Login / Register</button>
+      `;
+      authState.classList.remove("hidden");
+    }
+    favoritesContent?.classList.add("hidden");
+    if (favoritesCount) {
+      favoritesCount.textContent = "0 saved";
+    }
+    return;
+  }
+
+  try {
+    await renderFavoritesPage();
+    authState?.classList.add("hidden");
+    favoritesContent?.classList.remove("hidden");
+  } catch (error) {
+    if (authState) {
+      authState.classList.remove("hidden");
+      authState.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+    }
+    favoritesContent?.classList.add("hidden");
+  }
+}
+
+async function renderFavoritesPage() {
+  const favoritesGrid = document.getElementById("favoritesGrid");
+  const favoritesCount = document.getElementById("favoritesCount");
+  if (!favoritesGrid) {
+    return;
+  }
+
+  const response = await api("/api/listings/favorites", { auth: true });
+  const favorites = response.favorites || [];
+  appState.favorites = new Set(favorites.map((listing) => listing.id));
+
+  if (favoritesCount) {
+    favoritesCount.textContent = `${favorites.length} saved`;
+  }
+
+  if (!favorites.length) {
+    favoritesGrid.innerHTML = emptyStateMarkup(
+      "No favorites yet",
+      "Tap the heart icon on any listing to save it here."
+    );
+    return;
+  }
+
+  favoritesGrid.innerHTML = favorites.map((listing) => listingCardMarkup(listing)).join("");
+}
+
+function stopChatPolling() {
+  if (appState.chatPollTimer) {
+    window.clearInterval(appState.chatPollTimer);
+    appState.chatPollTimer = null;
+  }
+}
+
+async function handleOpenChat(triggerElement) {
+  if (!requireAuth()) {
+    return;
+  }
+
+  const listingId = String(triggerElement?.dataset?.chatListingId || "").trim();
+  const recipientId = String(triggerElement?.dataset?.chatRecipientId || "").trim();
+
+  if (!listingId && !recipientId) {
+    showToast("Unable to determine who to chat with.", "error");
+    return;
+  }
+
+  try {
+    const response = await api("/api/chats/start", {
+      method: "POST",
+      body: {
+        listingId: listingId || undefined,
+        recipientId: recipientId || undefined,
+      },
+      auth: true,
+    });
+
+    const chatId = response.chat?.id;
+    if (!chatId) {
+      showToast("Could not start chat right now.", "error");
+      return;
+    }
+
+    window.location.href = `/chats.html?chat=${encodeURIComponent(chatId)}`;
+  } catch (error) {
+    showToast(error.message, "error");
+  }
+}
+
+async function initializeChatsPage() {
+  const authState = document.getElementById("chatsAuthState");
+  const chatsContent = document.getElementById("chatsContent");
+  const chatComposerForm = document.getElementById("chatComposerForm");
+
+  stopChatPolling();
+
+  if (!appState.user) {
+    if (authState) {
+      authState.innerHTML = `
+        <h2>Chats unlock after login</h2>
+        <p>Login to message PG owners and manage all conversations in one place.</p>
+        <button class="btn btn-primary" data-open-auth data-auth-tab="login">Login / Register</button>
+      `;
+      authState.classList.remove("hidden");
+    }
+    chatsContent?.classList.add("hidden");
+    return;
+  }
+
+  bindChatComposer(chatComposerForm);
+
+  try {
+    await loadChatSummaries();
+    const queryChatId = new URLSearchParams(window.location.search).get("chat");
+    const targetChatId =
+      queryChatId && appState.chatSummaries.some((chat) => chat.id === queryChatId)
+        ? queryChatId
+        : "";
+
+    if (targetChatId) {
+      await openChatThread(targetChatId, { skipSummaryReload: true, forceScrollBottom: true });
+    } else {
+      renderActiveChatPanel(null);
+    }
+
+    authState?.classList.add("hidden");
+    chatsContent?.classList.remove("hidden");
+
+    appState.chatPollTimer = window.setInterval(async () => {
+      if (document.hidden) {
+        return;
+      }
+
+      const activeChatId = appState.activeChatId;
+      await loadChatSummaries();
+      if (activeChatId && appState.chatSummaries.some((chat) => chat.id === activeChatId)) {
+        await openChatThread(activeChatId, { skipSummaryReload: true, preserveScrollPosition: true });
+      }
+    }, 4500);
+  } catch (error) {
+    if (authState) {
+      authState.classList.remove("hidden");
+      authState.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+    }
+    chatsContent?.classList.add("hidden");
+  }
+}
+
+function bindChatComposer(form) {
+  if (!form || form.dataset.bound) {
+    return;
+  }
+
+  form.dataset.bound = "true";
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!requireAuth()) {
+      return;
+    }
+
+    const chatInput = document.getElementById("chatInput");
+    const sendButton = document.getElementById("chatSendBtn");
+    const text = String(chatInput?.value || "").trim();
+
+    if (!appState.activeChatId) {
+      showToast("Select a chat before sending a message.", "error");
+      return;
+    }
+
+    if (!text) {
+      return;
+    }
+
+    try {
+      if (sendButton) {
+        sendButton.disabled = true;
+      }
+
+      await api(`/api/chats/${appState.activeChatId}/messages`, {
+        method: "POST",
+        body: { text },
+        auth: true,
+      });
+
+      if (chatInput) {
+        chatInput.value = "";
+      }
+
+      await loadChatSummaries();
+      await openChatThread(appState.activeChatId, { skipSummaryReload: true, forceScrollBottom: true });
+    } catch (error) {
+      showToast(error.message, "error");
+    } finally {
+      if (sendButton) {
+        sendButton.disabled = false;
+      }
+    }
+  });
+}
+
+async function loadChatSummaries() {
+  const response = await api("/api/chats", { auth: true });
+  appState.chatSummaries = response.chats || [];
+  renderChatThreadList();
+}
+
+function renderChatThreadList() {
+  const threadList = document.getElementById("chatThreadList");
+  const chatThreadCount = document.getElementById("chatThreadCount");
+
+  if (!threadList) {
+    return;
+  }
+
+  if (chatThreadCount) {
+    chatThreadCount.textContent = `${appState.chatSummaries.length} chat${appState.chatSummaries.length === 1 ? "" : "s"}`;
+  }
+
+  if (!appState.chatSummaries.length) {
+    threadList.innerHTML = emptyStateMarkup(
+      "No chats yet",
+      "Open any listing and click chat with owner to start your first conversation."
+    );
+    return;
+  }
+
+  threadList.innerHTML = appState.chatSummaries
+    .map((chat) => {
+      const isActive = chat.id === appState.activeChatId;
+      const previewText = chat.lastMessage?.text || "No messages yet";
+      const previewLabel = chat.listingTitle ? `${chat.listingTitle} · ${previewText}` : previewText;
+      return `
+        <button type="button" class="chat-thread-btn ${isActive ? "active" : ""}" data-chat-thread-id="${chat.id}">
+          <div class="chat-thread-top">
+            <strong>${escapeHtml(chat.otherUser?.name || "Unknown user")}</strong>
+            <span>${escapeHtml(formatChatTime(chat.lastMessage?.createdAt || chat.updatedAt))}</span>
+          </div>
+          <p>${escapeHtml(truncateText(previewLabel, 78) || "No messages yet")}</p>
+          <div class="chat-thread-meta">
+            <span class="soft-badge">${escapeHtml(chat.listingTitle ? "Listing chat" : "Direct chat")}</span>
+            ${chat.unreadCount ? `<span class="chat-unread-badge">${chat.unreadCount}</span>` : ""}
+          </div>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+async function openChatThread(chatId, options = {}) {
+  const targetChatId = String(chatId || "").trim();
+  if (!targetChatId) {
+    return;
+  }
+
+  if (!options.skipSummaryReload) {
+    await loadChatSummaries();
+  }
+
+  const activeChatExists = appState.chatSummaries.some((chat) => chat.id === targetChatId);
+  if (!activeChatExists) {
+    renderActiveChatPanel(null);
+    return;
+  }
+
+  const response = await api(`/api/chats/${targetChatId}`, { auth: true });
+  appState.activeChatId = targetChatId;
+  renderChatThreadList();
+  renderActiveChatPanel(response.chat, options);
+  setActiveChatQuery(targetChatId);
+}
+
+function setActiveChatQuery(chatId) {
+  const nextUrl = new URL(window.location.href);
+  if (chatId) {
+    nextUrl.searchParams.set("chat", chatId);
+  } else {
+    nextUrl.searchParams.delete("chat");
+  }
+  window.history.replaceState({}, "", nextUrl);
+}
+
+function renderActiveChatPanel(chat, options = {}) {
+  const chatLayout = document.getElementById("chatLayout");
+  const emptyState = document.getElementById("chatEmptyState");
+  const activeView = document.getElementById("chatActiveView");
+  const chatHeader = document.getElementById("chatHeader");
+  const chatMessages = document.getElementById("chatMessages");
+
+  if (!activeView || !chatHeader || !chatMessages || !emptyState) {
+    return;
+  }
+
+  if (!chat) {
+    appState.activeChatId = "";
+    setActiveChatQuery("");
+    chatLayout?.classList.add("chat-layout-idle");
+    chatLayout?.classList.remove("chat-layout-active");
+    emptyState.classList.remove("hidden");
+    activeView.classList.add("hidden");
+    chatHeader.innerHTML = "";
+    chatMessages.innerHTML = "";
+    return;
+  }
+
+  chatLayout?.classList.remove("chat-layout-idle");
+  chatLayout?.classList.add("chat-layout-active");
+  emptyState.classList.add("hidden");
+  activeView.classList.remove("hidden");
+
+  chatHeader.innerHTML = `
+    <div>
+      <h3>${escapeHtml(chat.otherUser?.name || "Chat")}</h3>
+      <p>${escapeHtml(chat.listingTitle || "Direct conversation")}</p>
+    </div>
+    <span class="soft-badge">${escapeHtml(chat.unreadCount ? `${chat.unreadCount} unread` : "All caught up")}</span>
+  `;
+
+  const isNearBottom =
+    chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 90;
+
+  chatMessages.innerHTML = (chat.messages || [])
+    .map(
+      (message) => `
+        <article class="chat-message ${message.isMine ? "mine" : "theirs"}">
+          <p>${escapeHtml(message.text)}</p>
+          <span>${escapeHtml(formatChatTime(message.createdAt, true))}</span>
+        </article>
+      `
+    )
+    .join("");
+
+  if (!chat.messages?.length) {
+    chatMessages.innerHTML = emptyStateMarkup(
+      "No messages yet",
+      "Say hello and ask about rent, location, and move-in details."
+    );
+  }
+
+  if (options.forceScrollBottom || !options.preserveScrollPosition || isNearBottom) {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+}
+
 function renderDashboard(summary) {
   const greeting = document.getElementById("dashboardGreeting");
   const subtitle = document.getElementById("dashboardSubtitle");
   const statsGrid = document.getElementById("statsGrid");
   const overviewPanel = document.getElementById("overviewPanel");
-  const favoritesPanel = document.getElementById("favoritesPanel");
   const listingsPanel = document.getElementById("listingsPanel");
   const roommatesPanel = document.getElementById("roommatesPanel");
 
@@ -761,24 +1790,6 @@ function renderDashboard(summary) {
     `;
   }
 
-  if (favoritesPanel) {
-    favoritesPanel.innerHTML = `
-      <div class="dashboard-section-card">
-        <span class="eyebrow">My favorites</span>
-        <div class="compact-grid">
-          ${
-            summary.favorites.length
-              ? summary.favorites.map((listing) => listingCardMarkup(listing)).join("")
-              : emptyStateMarkup(
-                  "No favorites yet",
-                  "Save listings from the home page to build your shortlist."
-                )
-          }
-        </div>
-      </div>
-    `;
-  }
-
   if (listingsPanel) {
     listingsPanel.innerHTML = `
       <div class="dashboard-section-card">
@@ -786,7 +1797,9 @@ function renderDashboard(summary) {
         <div class="compact-grid">
           ${
             summary.myListings.length
-              ? summary.myListings.map((listing) => listingCardMarkup(listing)).join("")
+              ? summary.myListings
+                  .map((listing) => listingCardMarkup(listing, { showDelete: true }))
+                  .join("")
               : emptyStateMarkup(
                   "No listings posted yet",
                   "Visit the post page to publish your first PG listing."
@@ -877,23 +1890,24 @@ function renderDashboard(summary) {
 }
 
 function activateDashboardTab(tabName) {
+  const normalizedTab = ["overview", "listings", "roommates"].includes(tabName) ? tabName : "overview";
+
   document.querySelectorAll("[data-dashboard-tab]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.dashboardTab === tabName);
+    button.classList.toggle("active", button.dataset.dashboardTab === normalizedTab);
   });
 
   const panels = {
     overview: document.getElementById("overviewPanel"),
-    favorites: document.getElementById("favoritesPanel"),
     listings: document.getElementById("listingsPanel"),
     roommates: document.getElementById("roommatesPanel"),
   };
 
   Object.entries(panels).forEach(([key, panel]) => {
-    panel?.classList.toggle("active", key === tabName);
+    panel?.classList.toggle("active", key === normalizedTab);
   });
 
   const url = new URL(window.location.href);
-  url.searchParams.set("tab", tabName);
+  url.searchParams.set("tab", normalizedTab);
   window.history.replaceState({}, "", url);
 }
 
@@ -927,6 +1941,44 @@ async function toggleFavorite(listingId) {
       appState.favorites.delete(listingId);
     }
     showToast(response.message, "success");
+    await initializeCurrentPage();
+  } catch (error) {
+    showToast(error.message, "error");
+  }
+}
+
+async function handleDeleteListing(listingId) {
+  if (!requireAuth()) {
+    return;
+  }
+
+  const targetId = String(listingId || "").trim();
+  if (!targetId) {
+    return;
+  }
+
+  const shouldDelete = window.confirm(
+    "Do you want to remove this PG listing? This action cannot be undone."
+  );
+  if (!shouldDelete) {
+    return;
+  }
+
+  try {
+    const response = await api(`/api/listings/${targetId}`, {
+      method: "DELETE",
+      auth: true,
+    });
+
+    showToast(response.message || "Listing removed successfully.", "success");
+
+    if (appState.currentListing?.id === targetId) {
+      window.setTimeout(() => {
+        window.location.href = "/dashboard?tab=listings";
+      }, 300);
+      return;
+    }
+
     await initializeCurrentPage();
   } catch (error) {
     showToast(error.message, "error");
@@ -978,6 +2030,47 @@ function showToast(message, variant = "success") {
   }, 3200);
 }
 
+function playBackButtonClickSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) {
+      return;
+    }
+
+    const context = new AudioCtx();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = "triangle";
+    oscillator.frequency.setValueAtTime(780, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(520, context.currentTime + 0.075);
+
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.028, context.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.085);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+
+    oscillator.start(context.currentTime);
+    oscillator.stop(context.currentTime + 0.09);
+    oscillator.onended = () => {
+      context.close().catch(() => {});
+    };
+  } catch (error) {
+    // Sound is optional; fail silently if browser blocks or lacks support.
+  }
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Unable to read the selected image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function api(url, options = {}) {
   const config = {
     method: options.method || "GET",
@@ -1016,6 +2109,35 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
   }).format(new Date(value));
+}
+
+function formatChatTime(value, includeTime = false) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const now = new Date();
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (includeTime || sameDay) {
+    return new Intl.DateTimeFormat("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+  }).format(date);
 }
 
 function truncateText(text, limit) {

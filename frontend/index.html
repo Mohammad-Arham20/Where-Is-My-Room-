@@ -13,16 +13,19 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body data-page="home">
-    <header class="site-header glass-card">
+    <div class="header-shell">
+      <button class="nav-back-btn glass-card" data-nav-back type="button">Back</button>
+      <header class="site-header glass-card">
       <a href="/" class="brand-mark">PG & Roommate Finder</a>
       <nav class="nav-links">
         <a href="/" class="nav-link active">Home</a>
         <a href="/post" class="nav-link">Post</a>
         <a href="/dashboard" class="nav-link">Dashboard</a>
-        <a href="/dashboard?tab=favorites" class="nav-link">My Favorites</a>
+        <a href="/chats.html" class="nav-link">Chats</a>
+        <a href="/favorites.html" class="nav-link">My Favorites</a>
       </nav>
       <div class="nav-actions">
-        <div class="user-chip hidden" data-auth-user></div>
+        <button class="user-chip hidden" data-auth-user data-open-profile type="button"></button>
         <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
           Login / Register
         </button>
@@ -30,7 +33,8 @@
           Logout
         </button>
       </div>
-    </header>
+      </header>
+    </div>
 
     <main class="page-shell">
       <section class="hero-card glass-card">
@@ -42,20 +46,33 @@
             with compatible students using budget and lifestyle preferences.
           </p>
           <div class="hero-actions">
-            <a href="/post" class="btn btn-primary">Post a Listing</a>
-            <a href="/dashboard?tab=favorites" class="btn btn-secondary">View Favorites</a>
+            <a href="/post" class="btn btn-primary">
+              <span class="hero-action-icon icon-post" aria-hidden="true"></span>
+              Post a Listing
+            </a>
+            <a href="/dashboard" class="btn btn-secondary">
+              <span class="hero-action-icon icon-dashboard" aria-hidden="true"></span>
+              View Dashboard
+            </a>
           </div>
         </div>
         <div class="hero-stats">
-          <div class="mini-stat glass-inset">
+          <div class="mini-stat mini-stat-live mini-stat-emphasis glass-inset">
+            <span class="mini-stat-search-icon" aria-hidden="true"></span>
             <strong id="heroListingsCount">0</strong>
             <span>Live listings</span>
           </div>
-          <div class="mini-stat glass-inset">
+          <div class="mini-stat mini-stat-instant mini-stat-emphasis glass-inset">
+            <span class="mini-stat-slider-icon" aria-hidden="true">
+              <span class="line line-1"></span>
+              <span class="line line-2"></span>
+              <span class="line line-3"></span>
+            </span>
             <strong>Instant</strong>
             <span>Smart filtering</span>
           </div>
-          <div class="mini-stat glass-inset">
+          <div class="mini-stat mini-stat-favorite mini-stat-emphasis glass-inset">
+            <span class="mini-stat-heart-icon" aria-hidden="true">&#10084;</span>
             <strong>1 click</strong>
             <span>Save favorites</span>
           </div>
@@ -98,6 +115,7 @@
               <option value="Hyderabad">Hyderabad</option>
               <option value="Jaipur">Jaipur</option>
               <option value="Kota">Kota</option>
+              <option value="Rourkela">Rourkela</option>
             </select>
           </label>
 

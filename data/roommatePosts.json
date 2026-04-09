@@ -1,5 +1,47 @@
 [
   {
+    "id": "4999d76c-c0cd-47bf-8abc-ae5a1d523834",
+    "userId": "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8",
+    "userName": "shahzeb",
+    "location": "Rourkela",
+    "budget": 11000,
+    "gender": "Male",
+    "habits": [
+      "smoker"
+    ],
+    "notes": "dumb",
+    "contact": "8658086274",
+    "createdAt": "2026-04-08T22:27:07.767Z"
+  },
+  {
+    "id": "2e7eae53-8633-4cbd-891a-d9e0f6e3a138",
+    "userId": "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8",
+    "userName": "shahzeb",
+    "location": "Hyderabad",
+    "budget": 1000,
+    "gender": "Female",
+    "habits": [
+      "chudni chahiye"
+    ],
+    "notes": "sex addict",
+    "contact": "6561516120",
+    "createdAt": "2026-04-08T18:49:43.212Z"
+  },
+  {
+    "id": "4eed4ce1-79a6-4e8d-892a-79f2c4ea8249",
+    "userId": "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa",
+    "userName": "mohammad arham",
+    "location": "Delhi",
+    "budget": 11000,
+    "gender": "Male",
+    "habits": [
+      "smoker"
+    ],
+    "notes": "just come",
+    "contact": "8658086274",
+    "createdAt": "2026-04-08T10:42:51.537Z"
+  },
+  {
     "id": "rm-seed-1",
     "userId": "seed-user-1",
     "userName": "Aisha Khan",

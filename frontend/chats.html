@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard | PG & Roommate Finder</title>
+    <title>Chats | PG & Roommate Finder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,56 +12,77 @@
     />
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body data-page="dashboard">
+  <body data-page="chats">
     <div class="header-shell">
       <button class="nav-back-btn glass-card" data-nav-back type="button">Back</button>
       <header class="site-header glass-card">
-      <a href="/" class="brand-mark">PG & Roommate Finder</a>
-      <nav class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/post" class="nav-link">Post</a>
-        <a href="/dashboard" class="nav-link active">Dashboard</a>
-        <a href="/chats.html" class="nav-link">Chats</a>
-        <a href="/favorites.html" class="nav-link">My Favorites</a>
-      </nav>
-      <div class="nav-actions">
-        <button class="user-chip hidden" data-auth-user data-open-profile type="button"></button>
-        <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
-          Login / Register
-        </button>
-        <button class="btn btn-ghost auth-logout-btn hidden" data-auth-action="logout">
-          Logout
-        </button>
-      </div>
+        <a href="/" class="brand-mark">PG & Roommate Finder</a>
+        <nav class="nav-links">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/post" class="nav-link">Post</a>
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+          <a href="/chats.html" class="nav-link active">Chats</a>
+          <a href="/favorites.html" class="nav-link">My Favorites</a>
+        </nav>
+        <div class="nav-actions">
+          <button class="user-chip hidden" data-auth-user data-open-profile type="button"></button>
+          <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
+            Login / Register
+          </button>
+          <button class="btn btn-ghost auth-logout-btn hidden" data-auth-action="logout">
+            Logout
+          </button>
+        </div>
       </header>
     </div>
 
     <main class="page-shell">
       <section class="section-header">
         <div>
-          <span class="eyebrow">Your workspace</span>
-          <h1 id="dashboardGreeting">Dashboard</h1>
+          <span class="eyebrow">Student messaging</span>
+          <h1>Your Chats</h1>
         </div>
-        <p id="dashboardSubtitle">Track active listings and roommate compatibility.</p>
+        <p>Talk directly with PG listers and keep separate conversations in one place.</p>
       </section>
 
-      <section id="dashboardAuthState" class="glass-card auth-state-card loading-shell">
-        Loading dashboard...
+      <section id="chatsAuthState" class="glass-card auth-state-card loading-shell">
+        Loading your chats...
       </section>
 
-      <section id="dashboardContent" class="hidden">
-        <div class="stats-grid" id="statsGrid"></div>
+      <section id="chatsContent" class="hidden">
+        <div class="chat-layout chat-layout-idle" id="chatLayout">
+          <aside class="glass-card chat-sidebar">
+            <div class="chat-sidebar-head">
+              <span class="eyebrow">Conversations</span>
+              <p id="chatThreadCount">0 chats</p>
+            </div>
+            <div id="chatThreadList" class="chat-thread-list"></div>
+          </aside>
 
-        <div class="glass-card dashboard-tabs">
-          <div class="tab-bar">
-            <button class="tab-btn active" data-dashboard-tab="overview">Overview</button>
-            <button class="tab-btn" data-dashboard-tab="listings">My Listings</button>
-            <button class="tab-btn" data-dashboard-tab="roommates">Roommates</button>
-          </div>
+          <section class="glass-card chat-main">
+            <div id="chatEmptyState" class="empty-state">
+              <h3>No chats selected</h3>
+              <p>Select a chat to see and talk.</p>
+            </div>
 
-          <div id="overviewPanel" class="tab-panel active"></div>
-          <div id="listingsPanel" class="tab-panel"></div>
-          <div id="roommatesPanel" class="tab-panel"></div>
+            <div id="chatActiveView" class="chat-active-view hidden">
+              <div id="chatHeader" class="chat-header"></div>
+              <div id="chatMessages" class="chat-messages"></div>
+              <form id="chatComposerForm" class="chat-composer">
+                <label class="field-group">
+                  <span>Message</span>
+                  <textarea
+                    id="chatInput"
+                    rows="2"
+                    maxlength="1200"
+                    placeholder="Type your message..."
+                    required
+                  ></textarea>
+                </label>
+                <button class="btn btn-primary" id="chatSendBtn" type="submit">Send</button>
+              </form>
+            </div>
+          </section>
         </div>
       </section>
     </main>
@@ -73,7 +94,7 @@
         </button>
         <div class="modal-header">
           <span class="eyebrow">Access your account</span>
-          <h3>Open your dashboard</h3>
+          <h3>Open your chats</h3>
         </div>
         <div class="auth-toggle">
           <button class="tab-btn active" data-auth-tab="login">Login</button>

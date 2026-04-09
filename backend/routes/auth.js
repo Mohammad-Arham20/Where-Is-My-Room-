@@ -65,5 +65,36 @@ module.exports = function authRoutes(store, secret, authRequired) {
     return res.json({ user: store.sanitizeUser(user) });
   });
 
+  router.get("/profile", authRequired, async (req, res) => {
+    const user = await store.findUserById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.json({
+      user: store.sanitizeUser(user),
+      profile: user.profile,
+    });
+  });
+
+  router.put("/profile", authRequired, async (req, res) => {
+    const nextName = String(req.body?.name ?? "").trim();
+    if (!nextName) {
+      return res.status(400).json({ message: "Name is required." });
+    }
+
+    const updatedUser = await store.updateUserProfile(req.user.id, req.body || {});
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.json({
+      message: "Profile updated successfully.",
+      user: updatedUser,
+      profile: updatedUser.profile,
+    });
+  });
+
   return router;
 };

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Post Listing | PG & Roommate Finder</title>
+    <title>My Profile | PG & Roommate Finder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,14 +12,14 @@
     />
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body data-page="post">
+  <body data-page="profile">
     <div class="header-shell">
       <button class="nav-back-btn glass-card" data-nav-back type="button">Back</button>
       <header class="site-header glass-card">
       <a href="/" class="brand-mark">PG & Roommate Finder</a>
       <nav class="nav-links">
         <a href="/" class="nav-link">Home</a>
-        <a href="/post" class="nav-link active">Post</a>
+        <a href="/post" class="nav-link">Post</a>
         <a href="/dashboard" class="nav-link">Dashboard</a>
         <a href="/chats.html" class="nav-link">Chats</a>
         <a href="/favorites.html" class="nav-link">My Favorites</a>
@@ -39,36 +39,67 @@
     <main class="page-shell">
       <section class="section-header">
         <div>
-          <span class="eyebrow">Create opportunities</span>
-          <h1>Post a PG listing or your roommate preferences</h1>
+          <span class="eyebrow">My account</span>
+          <h1 id="profileGreeting">Your profile</h1>
         </div>
-        <p id="postStatusMessage">Login to publish listings and roommate requirements.</p>
+        <p id="profileSubtitle">Keep your student and preference details updated for better matches.</p>
       </section>
 
-      <section class="two-column-layout">
-        <article class="glass-card form-card">
+      <section id="profileAuthState" class="glass-card auth-state-card loading-shell">
+        Loading your profile...
+      </section>
+
+      <section id="profileContent" class="profile-layout hidden">
+        <article id="profileSummaryCard" class="glass-card profile-summary-card"></article>
+
+        <article id="profileEditCard" class="glass-card form-card profile-edit-card">
           <div class="card-title-row">
             <div>
-              <span class="eyebrow">Listing form</span>
-              <h2>Publish a PG</h2>
+              <span class="eyebrow">Edit details</span>
+              <h2>Update your profile</h2>
             </div>
-            <span class="soft-badge">Glass card UI</span>
+            <span class="soft-badge">Private to your account</span>
           </div>
 
-          <form id="listingForm" class="stack-form">
-            <label class="field-group">
-              <span>Title</span>
-              <input type="text" name="title" placeholder="Cozy Study PG near campus" required />
-            </label>
+          <form id="profileForm" class="stack-form">
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Full name</span>
+                <input type="text" name="name" placeholder="Your full name" required />
+              </label>
+              <label class="field-group">
+                <span>Phone number</span>
+                <input type="text" name="phone" placeholder="+91 98765 43210" />
+              </label>
+            </div>
 
             <div class="inline-fields">
               <label class="field-group">
-                <span>Rent</span>
-                <input type="number" name="rent" min="1000" step="100" placeholder="12000" required />
+                <span>College / Institute</span>
+                <input type="text" name="college" placeholder="IIT, NIT, University, etc." />
               </label>
               <label class="field-group">
-                <span>Location</span>
-                <select name="location" required>
+                <span>Course</span>
+                <input type="text" name="course" placeholder="B.Tech CSE, MBA, etc." />
+              </label>
+            </div>
+
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Year of study</span>
+                <select name="yearOfStudy">
+                  <option value="">Select year</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                  <option value="Postgraduate">Postgraduate</option>
+                  <option value="Working Professional">Working Professional</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>Preferred location</span>
+                <select name="preferredLocation">
                   <option value="">Choose location</option>
                   <option value="Delhi">Delhi</option>
                   <option value="Pune">Pune</option>
@@ -83,139 +114,95 @@
 
             <div class="inline-fields">
               <label class="field-group">
-                <span>Room type</span>
-                <select name="roomType" required>
-                  <option value="">Select</option>
-                  <option value="Single">Single</option>
-                  <option value="Double Sharing">Double Sharing</option>
-                  <option value="Triple Sharing">Triple Sharing</option>
-                  <option value="Studio">Studio</option>
-                </select>
+                <span>Monthly budget (Rs.)</span>
+                <input type="number" name="monthlyBudget" min="0" step="500" placeholder="15000" />
               </label>
               <label class="field-group">
-                <span>Gender preference</span>
-                <select name="genderPreference" required>
+                <span>Gender</span>
+                <select name="gender">
                   <option value="">Select</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Food preference</span>
+                <select name="foodPreference">
+                  <option value="">Select</option>
+                  <option value="Vegetarian">Vegetarian</option>
+                  <option value="Non-vegetarian">Non-vegetarian</option>
+                  <option value="Eggetarian">Eggetarian</option>
                   <option value="Any">Any</option>
                 </select>
               </label>
-            </div>
-
-            <div class="inline-fields">
               <label class="field-group">
-                <span>Furnished</span>
-                <select name="furnished" required>
+                <span>Sleep schedule</span>
+                <select name="sleepSchedule">
                   <option value="">Select</option>
-                  <option value="Furnished">Furnished</option>
-                  <option value="Unfurnished">Unfurnished</option>
+                  <option value="Early sleeper">Early sleeper</option>
+                  <option value="Night owl">Night owl</option>
+                  <option value="Flexible">Flexible</option>
                 </select>
               </label>
-              <label class="field-group">
-                <span>Contact</span>
-                <input type="text" name="contact" placeholder="+91 98765 43210" required />
-              </label>
             </div>
 
-            <label class="field-group">
-              <span>Description</span>
-              <textarea
-                name="description"
-                rows="5"
-                placeholder="Describe amenities, nearby colleges, food, safety, and room atmosphere."
-                required
-              ></textarea>
-            </label>
-
-            <label class="field-group">
-              <span>Upload Image From Device</span>
-              <input type="file" name="imageFile" id="listingImageFile" accept="image/*" />
-            </label>
-
-            <div class="image-preview-wrap hidden" id="listingImagePreviewWrap">
-              <img id="listingImagePreview" alt="Listing preview" />
-            </div>
-
-            <button class="btn btn-primary btn-block" type="submit">Add new listing</button>
-          </form>
-        </article>
-
-        <article class="glass-card form-card">
-          <div class="card-title-row">
-            <div>
-              <span class="eyebrow">Roommate matching</span>
-              <h2>Post your roommate requirements</h2>
-            </div>
-            <span class="soft-badge">Key feature</span>
-          </div>
-
-          <form id="roommateForm" class="stack-form">
             <div class="inline-fields">
               <label class="field-group">
-                <span>Location</span>
-                <select name="location" required>
-                  <option value="">Choose location</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Pune">Pune</option>
-                  <option value="Bengaluru">Bengaluru</option>
-                  <option value="Hyderabad">Hyderabad</option>
-                  <option value="Jaipur">Jaipur</option>
-                  <option value="Kota">Kota</option>
-                  <option value="Rourkela">Rourkela</option>
+                <span>Smoking preference</span>
+                <select name="smokingPreference">
+                  <option value="">Select</option>
+                  <option value="Non-smoking">Non-smoking</option>
+                  <option value="Smoking allowed">Smoking allowed</option>
+                  <option value="Occasional smoking">Occasional smoking</option>
                 </select>
               </label>
               <label class="field-group">
-                <span>Budget</span>
-                <input type="number" name="budget" min="1000" step="100" placeholder="14000" required />
+                <span>Cleanliness level</span>
+                <select name="cleanlinessLevel">
+                  <option value="">Select</option>
+                  <option value="Very neat">Very neat</option>
+                  <option value="Moderately neat">Moderately neat</option>
+                  <option value="Flexible">Flexible</option>
+                </select>
               </label>
             </div>
 
             <label class="field-group">
-              <span>Gender</span>
-              <select name="gender" required>
-                <option value="">Select preference</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Any">Any</option>
-              </select>
-            </label>
-
-            <label class="field-group">
-              <span>Habits</span>
+              <span>Hobbies (comma separated)</span>
               <input
                 type="text"
-                name="habits"
-                placeholder="Early riser, Non-smoker, Study-focused"
-                required
+                name="hobbies"
+                placeholder="Music, Gym, Reading, Sports, Coding"
               />
             </label>
 
             <label class="field-group">
-              <span>Notes</span>
+              <span>About me</span>
               <textarea
-                name="notes"
-                rows="5"
-                placeholder="Share what kind of roommate and room environment you want."
-                required
+                name="aboutMe"
+                rows="4"
+                placeholder="Share your lifestyle, study routine, and what kind of room environment you prefer."
               ></textarea>
             </label>
 
-            <label class="field-group">
-              <span>Contact</span>
-              <input type="text" name="contact" placeholder="email or phone number" required />
-            </label>
+            <div class="inline-fields">
+              <label class="field-group">
+                <span>Emergency contact name</span>
+                <input type="text" name="emergencyContactName" placeholder="Parent / Guardian" />
+              </label>
+              <label class="field-group">
+                <span>Emergency contact phone</span>
+                <input type="text" name="emergencyContactPhone" placeholder="+91 90000 00000" />
+              </label>
+            </div>
 
-            <button class="btn btn-primary btn-block" type="submit">Find roommate matches</button>
+            <button class="btn btn-primary btn-block" type="submit">Save profile</button>
           </form>
-
-          <div class="glass-inset tips-box">
-            <h3>Matching logic</h3>
-            <p>
-              Matches are ranked using location, budget proximity, gender preference, and shared
-              habits for a simple but useful compatibility score.
-            </p>
-          </div>
         </article>
       </section>
     </main>
@@ -227,7 +214,7 @@
         </button>
         <div class="modal-header">
           <span class="eyebrow">Access your account</span>
-          <h3>Start posting today</h3>
+          <h3>Login to open your profile</h3>
         </div>
         <div class="auth-toggle">
           <button class="tab-btn active" data-auth-tab="login">Login</button>

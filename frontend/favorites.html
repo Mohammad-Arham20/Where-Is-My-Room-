@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard | PG & Roommate Finder</title>
+    <title>My Favorites | PG & Roommate Finder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,57 +12,45 @@
     />
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body data-page="dashboard">
+  <body data-page="favorites">
     <div class="header-shell">
       <button class="nav-back-btn glass-card" data-nav-back type="button">Back</button>
       <header class="site-header glass-card">
-      <a href="/" class="brand-mark">PG & Roommate Finder</a>
-      <nav class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/post" class="nav-link">Post</a>
-        <a href="/dashboard" class="nav-link active">Dashboard</a>
-        <a href="/chats.html" class="nav-link">Chats</a>
-        <a href="/favorites.html" class="nav-link">My Favorites</a>
-      </nav>
-      <div class="nav-actions">
-        <button class="user-chip hidden" data-auth-user data-open-profile type="button"></button>
-        <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
-          Login / Register
-        </button>
-        <button class="btn btn-ghost auth-logout-btn hidden" data-auth-action="logout">
-          Logout
-        </button>
-      </div>
+        <a href="/" class="brand-mark">PG & Roommate Finder</a>
+        <nav class="nav-links">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/post" class="nav-link">Post</a>
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+          <a href="/chats.html" class="nav-link">Chats</a>
+          <a href="/favorites.html" class="nav-link active">My Favorites</a>
+        </nav>
+        <div class="nav-actions">
+          <button class="user-chip hidden" data-auth-user data-open-profile type="button"></button>
+          <button class="btn btn-secondary auth-login-btn" data-open-auth data-auth-tab="login">
+            Login / Register
+          </button>
+          <button class="btn btn-ghost auth-logout-btn hidden" data-auth-action="logout">
+            Logout
+          </button>
+        </div>
       </header>
     </div>
 
     <main class="page-shell">
       <section class="section-header">
         <div>
-          <span class="eyebrow">Your workspace</span>
-          <h1 id="dashboardGreeting">Dashboard</h1>
+          <span class="eyebrow">Your shortlist</span>
+          <h1>My Favorite PGs</h1>
         </div>
-        <p id="dashboardSubtitle">Track active listings and roommate compatibility.</p>
+        <p id="favoritesCount">0 saved</p>
       </section>
 
-      <section id="dashboardAuthState" class="glass-card auth-state-card loading-shell">
-        Loading dashboard...
+      <section id="favoritesAuthState" class="glass-card auth-state-card loading-shell">
+        Loading your favorites...
       </section>
 
-      <section id="dashboardContent" class="hidden">
-        <div class="stats-grid" id="statsGrid"></div>
-
-        <div class="glass-card dashboard-tabs">
-          <div class="tab-bar">
-            <button class="tab-btn active" data-dashboard-tab="overview">Overview</button>
-            <button class="tab-btn" data-dashboard-tab="listings">My Listings</button>
-            <button class="tab-btn" data-dashboard-tab="roommates">Roommates</button>
-          </div>
-
-          <div id="overviewPanel" class="tab-panel active"></div>
-          <div id="listingsPanel" class="tab-panel"></div>
-          <div id="roommatesPanel" class="tab-panel"></div>
-        </div>
+      <section id="favoritesContent" class="hidden">
+        <div id="favoritesGrid" class="listing-grid"></div>
       </section>
     </main>
 
@@ -73,7 +61,7 @@
         </button>
         <div class="modal-header">
           <span class="eyebrow">Access your account</span>
-          <h3>Open your dashboard</h3>
+          <h3>Open your favorites</h3>
         </div>
         <div class="auth-toggle">
           <button class="tab-btn active" data-auth-tab="login">Login</button>

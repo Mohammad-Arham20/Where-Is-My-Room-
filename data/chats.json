@@ -1,0 +1,99 @@
+[
+  {
+    "id": "ae8d5b17-290a-420a-b35c-c4258f51f5a6",
+    "participantIds": [
+      "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8",
+      "ea20bebc-5ba9-4d70-ad01-cf6e30994995"
+    ],
+    "listingId": "f79f0975-0908-429c-8f00-e52ecb742c12",
+    "listingTitle": "fhjhefihdefhih",
+    "createdAt": "2026-04-08T22:29:48.968Z",
+    "updatedAt": "2026-04-08T22:29:54.895Z",
+    "messages": [
+      {
+        "id": "86997936-9e76-4c83-8564-ac44fefd9d57",
+        "senderId": "ea20bebc-5ba9-4d70-ad01-cf6e30994995",
+        "text": "hii",
+        "createdAt": "2026-04-08T22:29:54.895Z",
+        "readBy": [
+          "ea20bebc-5ba9-4d70-ad01-cf6e30994995"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "58128a5c-6768-433d-a2d4-43ed5660ed8e",
+    "participantIds": [
+      "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa",
+      "ea20bebc-5ba9-4d70-ad01-cf6e30994995"
+    ],
+    "listingId": "c04cd499-e353-4b8c-aaf4-69ecb1fa5889",
+    "listingTitle": "sami",
+    "createdAt": "2026-04-08T22:29:32.625Z",
+    "updatedAt": "2026-04-08T22:29:39.025Z",
+    "messages": [
+      {
+        "id": "01c0f268-e36e-4599-9dca-5d29f0c09e8a",
+        "senderId": "ea20bebc-5ba9-4d70-ad01-cf6e30994995",
+        "text": "hii",
+        "createdAt": "2026-04-08T22:29:39.025Z",
+        "readBy": [
+          "ea20bebc-5ba9-4d70-ad01-cf6e30994995",
+          "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bb37eb97-f2e9-4b98-abfa-1577075f3566",
+    "participantIds": [
+      "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa",
+      "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8"
+    ],
+    "listingId": "c04cd499-e353-4b8c-aaf4-69ecb1fa5889",
+    "listingTitle": "sami",
+    "createdAt": "2026-04-08T21:57:04.887Z",
+    "updatedAt": "2026-04-08T22:32:57.316Z",
+    "messages": [
+      {
+        "id": "d9c305f0-a11b-4f33-a50c-ab4d8334b424",
+        "senderId": "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8",
+        "text": "hi i want to book a pg",
+        "createdAt": "2026-04-08T21:57:22.658Z",
+        "readBy": [
+          "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8",
+          "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa"
+        ]
+      },
+      {
+        "id": "754937d9-66f3-4674-8e16-b1edcddc56f9",
+        "senderId": "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa",
+        "text": "okay",
+        "createdAt": "2026-04-08T21:57:58.316Z",
+        "readBy": [
+          "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa",
+          "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8"
+        ]
+      },
+      {
+        "id": "0e9f4e63-21c0-4e60-9e0b-1f842121e341",
+        "senderId": "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8",
+        "text": "okay sure",
+        "createdAt": "2026-04-08T21:58:18.572Z",
+        "readBy": [
+          "2bc1e0ea-5b57-4a8e-8431-ecbe71eac0d8",
+          "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa"
+        ]
+      },
+      {
+        "id": "ff20ed3f-4034-4d2e-95e9-82ee10f3b984",
+        "senderId": "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa",
+        "text": "sadf",
+        "createdAt": "2026-04-08T22:32:57.316Z",
+        "readBy": [
+          "1a214def-eb3f-4673-b43f-c0d8cbaaa9fa"
+        ]
+      }
+    ]
+  }
+]
