@@ -16,6 +16,11 @@ module.exports = function listingRoutes(store, authRequired) {
     return res.json({ favorites });
   });
 
+  router.get("/favorites/ids", authRequired, async (req, res) => {
+    const favoriteIds = await store.getUserFavoriteIds(req.user.id);
+    return res.json({ favoriteIds });
+  });
+
   router.get("/:id", async (req, res) => {
     const listing = await store.getListingById(req.params.id);
 

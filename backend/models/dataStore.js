@@ -3,6 +3,9 @@ const crypto = require("crypto");
 const { ensureJsonFile, readJson, writeJson } = require("./storage");
 
 const DATA_DIR = path.resolve(__dirname, "../../data");
+const INLINE_IMAGE_SIZE_LIMIT = 220000;
+const DEFAULT_LISTING_IMAGE =
+  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
 
 class DataStore {
   constructor() {
@@ -44,6 +47,7 @@ class DataStore {
       cleanlinessLevel: "",
       hobbies: "",
       aboutMe: fallbackAbout,
+      avatarUrl: "",
       emergencyContactName: "",
       emergencyContactPhone: "",
       updatedAt: new Date().toISOString(),
@@ -117,6 +121,19 @@ class DataStore {
       }
     }
 
+    let avatarUrl = String(currentProfile.avatarUrl || "").trim();
+    if (Object.prototype.hasOwnProperty.call(payload, "avatarUrl")) {
+      const candidate = String(payload.avatarUrl ?? "").trim();
+      if (!candidate) {
+        avatarUrl = "";
+      } else if (
+        candidate.startsWith("data:image/") &&
+        candidate.length <= 2_500_000
+      ) {
+        avatarUrl = candidate;
+      }
+    }
+
     return {
       phone: nextText("phone", 24),
       college: nextText("college", 120),
@@ -131,6 +148,7 @@ class DataStore {
       cleanlinessLevel: nextText("cleanlinessLevel", 80),
       hobbies: nextText("hobbies", 220),
       aboutMe: nextText("aboutMe", 800),
+      avatarUrl,
       emergencyContactName: nextText("emergencyContactName", 120),
       emergencyContactPhone: nextText("emergencyContactPhone", 24),
       updatedAt: new Date().toISOString(),
@@ -148,7 +166,9 @@ class DataStore {
     return safeUser;
   }
 
-  withListingMeta(listing) {
+  withListingMeta(listing, options = {}) {
+    const includeReviews = options.includeReviews !== false;
+    const includeLargeInlineImage = Boolean(options.includeLargeInlineImage);
     const reviews = Array.isArray(listing.reviews) ? listing.reviews : [];
     const reviewCount = reviews.length;
     const averageRating = reviewCount
@@ -160,9 +180,16 @@ class DataStore {
         )
       : 0;
 
+    const hasLargeInlineImage =
+      typeof listing.imageUrl === "string" &&
+      listing.imageUrl.startsWith("data:image/") &&
+      listing.imageUrl.length > INLINE_IMAGE_SIZE_LIMIT;
+
     return {
       ...listing,
-      reviews,
+      imageUrl:
+        hasLargeInlineImage && !includeLargeInlineImage ? DEFAULT_LISTING_IMAGE : listing.imageUrl,
+      ...(includeReviews ? { reviews } : {}),
       reviewCount,
       averageRating,
     };
@@ -176,9 +203,14 @@ class DataStore {
     return writeJson(this.files.users, users);
   }
 
-  async getListings() {
+  async getListings(options = {}) {
     const listings = await readJson(this.files.listings, []);
-    return listings.map((listing) => this.withListingMeta(listing));
+    return listings.map((listing) =>
+      this.withListingMeta(listing, {
+        includeReviews: options.includeReviews ?? false,
+        includeLargeInlineImage: options.includeLargeInlineImage ?? false,
+      })
+    );
   }
 
   async getRawListings() {
@@ -418,13 +450,13 @@ class DataStore {
     listings.unshift(listing);
     await this.saveListings(listings);
 
-    return this.withListingMeta(listing);
+    return this.withListingMeta(listing, { includeLargeInlineImage: true });
   }
 
   async getListingById(listingId) {
     const listings = await this.getRawListings();
     const listing = listings.find((item) => item.id === listingId);
-    return listing ? this.withListingMeta(listing) : null;
+    return listing ? this.withListingMeta(listing, { includeLargeInlineImage: true }) : null;
   }
 
   async toggleFavorite(userId, listingId) {
@@ -455,7 +487,7 @@ class DataStore {
     };
   }
 
-  async getUserFavoriteListings(userId) {
+  async getUserFavoriteListings(userId, options = {}) {
     const user = await this.findUserById(userId);
 
     if (!user) {
@@ -463,8 +495,17 @@ class DataStore {
     }
 
     const favoriteIds = new Set(user.favoriteListings || []);
-    const listings = await this.getListings();
+    const listings = await this.getListings(options);
     return listings.filter((listing) => favoriteIds.has(listing.id));
+  }
+
+  async getUserFavoriteIds(userId) {
+    const user = await this.findUserById(userId);
+    if (!user) {
+      return [];
+    }
+
+    return Array.isArray(user.favoriteListings) ? user.favoriteListings : [];
   }
 
   async addReview(listingId, review) {
@@ -488,7 +529,7 @@ class DataStore {
     listing.reviews.unshift(nextReview);
 
     await this.saveListings(listings);
-    return this.withListingMeta(listing);
+    return this.withListingMeta(listing, { includeLargeInlineImage: true });
   }
 
   async deleteListing(listingId, ownerId) {
@@ -523,7 +564,7 @@ class DataStore {
 
     return {
       status: "deleted",
-      listing: this.withListingMeta(removedListing),
+      listing: this.withListingMeta(removedListing, { includeLargeInlineImage: true }),
     };
   }
 
@@ -759,9 +800,9 @@ class DataStore {
   }
 
   async getDashboardSummary(userId) {
-    const [listings, favorites, roommatePosts, user] = await Promise.all([
+    const [listings, favoriteIds, roommatePosts, user] = await Promise.all([
       this.getListings(),
-      this.getUserFavoriteListings(userId),
+      this.getUserFavoriteIds(userId),
       this.getRoommatePosts(),
       this.findUserById(userId),
     ]);
@@ -771,6 +812,8 @@ class DataStore {
     }
 
     const myListings = listings.filter((listing) => listing.ownerId === userId);
+    const favoriteIdSet = new Set(favoriteIds);
+    const favorites = listings.filter((listing) => favoriteIdSet.has(listing.id));
     const myRoommatePosts = roommatePosts.filter((post) => post.userId === userId);
     const roommateMatches = await this.getRoommateMatches(userId);
 

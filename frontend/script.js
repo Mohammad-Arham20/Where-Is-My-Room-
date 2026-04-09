@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   token: "pgFinderToken",
   user: "pgFinderUser",
+  avatar: "pgFinderAvatarUrl",
 };
 
 const SESSION_KEYS = {
@@ -20,6 +21,9 @@ const appState = {
   chatPollTimer: null,
   profileData: null,
   profileEditing: true,
+  pendingProfileAvatarUrl: "",
+  removeProfileAvatar: false,
+  profileAvatarUrl: localStorage.getItem(STORAGE_KEYS.avatar) || "",
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -46,9 +50,21 @@ function readStoredUser() {
 
 function setSession(token, user) {
   appState.token = token;
+  const incomingAvatar = String(user?.profile?.avatarUrl || "").trim();
+  const nextAvatar = incomingAvatar || String(appState.profileAvatarUrl || "").trim();
+
+  if (user && typeof user === "object") {
+    user.profile = {
+      ...(user.profile || {}),
+      avatarUrl: nextAvatar,
+    };
+  }
+
   appState.user = user;
+  appState.profileAvatarUrl = nextAvatar;
   localStorage.setItem(STORAGE_KEYS.token, token);
   localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+  localStorage.setItem(STORAGE_KEYS.avatar, appState.profileAvatarUrl);
   updateAuthUI();
 }
 
@@ -59,9 +75,22 @@ function clearSession() {
   appState.favorites = new Set();
   appState.chatSummaries = [];
   appState.activeChatId = "";
+  appState.pendingProfileAvatarUrl = "";
+  appState.removeProfileAvatar = false;
+  appState.profileAvatarUrl = "";
   localStorage.removeItem(STORAGE_KEYS.token);
   localStorage.removeItem(STORAGE_KEYS.user);
+  localStorage.removeItem(STORAGE_KEYS.avatar);
   updateAuthUI();
+}
+
+function getEffectiveAvatarUrl() {
+  return String(
+    appState.user?.profile?.avatarUrl ||
+      appState.profileData?.avatarUrl ||
+      appState.profileAvatarUrl ||
+      ""
+  ).trim();
 }
 
 function initAnimatedBackground() {
@@ -69,20 +98,39 @@ function initAnimatedBackground() {
     return;
   }
 
-  const field = document.createElement("div");
-  field.className = "bubble-field";
-
-  for (let index = 0; index < 40; index += 1) {
-    const bubble = document.createElement("span");
-    bubble.className = "bubble";
-    bubble.style.setProperty("--size", `${randomBetween(22, 90)}px`);
-    bubble.style.setProperty("--left", `${randomBetween(0, 100)}%`);
-    bubble.style.setProperty("--duration", `${randomBetween(18, 38)}s`);
-    bubble.style.setProperty("--delay", `${randomBetween(-24, 0)}s`);
-    bubble.style.setProperty("--opacity", `${randomBetween(0.16, 0.42)}`);
-    field.appendChild(bubble);
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion) {
+    return;
   }
 
+  const isMobileViewport = window.matchMedia("(max-width: 760px)").matches;
+  const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  const mobileMode = isMobileViewport || hasCoarsePointer;
+
+  const bubbleCount = mobileMode ? 18 : 40;
+  const sizeMin = mobileMode ? 16 : 22;
+  const sizeMax = mobileMode ? 58 : 90;
+  const durationMin = mobileMode ? 22 : 18;
+  const durationMax = mobileMode ? 42 : 38;
+  const opacityMin = mobileMode ? 0.12 : 0.16;
+  const opacityMax = mobileMode ? 0.3 : 0.42;
+
+  const field = document.createElement("div");
+  field.className = "bubble-field";
+  const fragment = document.createDocumentFragment();
+
+  for (let index = 0; index < bubbleCount; index += 1) {
+    const bubble = document.createElement("span");
+    bubble.className = "bubble";
+    bubble.style.setProperty("--size", `${randomBetween(sizeMin, sizeMax)}px`);
+    bubble.style.setProperty("--left", `${randomBetween(0, 100)}%`);
+    bubble.style.setProperty("--duration", `${randomBetween(durationMin, durationMax)}s`);
+    bubble.style.setProperty("--delay", `${randomBetween(-24, 0)}s`);
+    bubble.style.setProperty("--opacity", `${randomBetween(opacityMin, opacityMax)}`);
+    fragment.appendChild(bubble);
+  }
+
+  field.appendChild(fragment);
   document.body.appendChild(field);
 }
 
@@ -95,7 +143,11 @@ function bindGlobalInteractions() {
     const topNavLink = event.target.closest(".site-header .nav-links .nav-link");
     if (topNavLink) {
       sessionStorage.setItem(SESSION_KEYS.suppressBackOnNextPage, "1");
-      sessionStorage.setItem(SESSION_KEYS.navPageTransition, "1");
+    }
+
+    const brandLink = event.target.closest(".brand-mark");
+    if (brandLink) {
+      sessionStorage.setItem(SESSION_KEYS.suppressBackOnNextPage, "1");
     }
 
     const navBackButton = event.target.closest("[data-nav-back]");
@@ -169,6 +221,12 @@ function bindGlobalInteractions() {
       return;
     }
 
+    const removeProfilePhotoButton = event.target.closest("[data-remove-profile-photo]");
+    if (removeProfilePhotoButton) {
+      removePendingProfilePhoto();
+      return;
+    }
+
     const favoriteButton = event.target.closest("[data-favorite-id]");
     if (favoriteButton) {
       event.preventDefault();
@@ -230,18 +288,8 @@ function bindGlobalInteractions() {
 }
 
 function applyNavPageTransition() {
-  const shouldAnimate = sessionStorage.getItem(SESSION_KEYS.navPageTransition) === "1";
-  if (!shouldAnimate || !document.body) {
-    return;
-  }
-
+  // Disabled to avoid flicker/stutter on page navigation.
   sessionStorage.removeItem(SESSION_KEYS.navPageTransition);
-  window.requestAnimationFrame(() => {
-    document.body.classList.add("nav-enter-transition");
-    window.setTimeout(() => {
-      document.body.classList.remove("nav-enter-transition");
-    }, 700);
-  });
 }
 
 function updateBackButtonVisibility() {
@@ -252,7 +300,9 @@ function updateBackButtonVisibility() {
 
   const shouldSuppress = sessionStorage.getItem(SESSION_KEYS.suppressBackOnNextPage) === "1";
   const canGoBack = window.history.length > 1;
-  const shouldShow = canGoBack && !shouldSuppress;
+  const pathname = window.location.pathname;
+  const isHomePage = pathname === "/" || pathname === "/index.html";
+  const shouldShow = canGoBack && !shouldSuppress && !isHomePage;
 
   backButtons.forEach((button) => {
     button.classList.toggle("hidden", !shouldShow);
@@ -318,8 +368,17 @@ async function restoreSession() {
 
   try {
     const response = await api("/api/auth/me", { auth: true });
+    const incomingAvatar = String(response.user?.profile?.avatarUrl || "").trim();
+    const cachedAvatar = String(appState.profileAvatarUrl || localStorage.getItem(STORAGE_KEYS.avatar) || "").trim();
+    const resolvedAvatar = incomingAvatar || cachedAvatar;
+    response.user.profile = {
+      ...(response.user.profile || {}),
+      avatarUrl: resolvedAvatar,
+    };
     appState.user = response.user;
+    appState.profileAvatarUrl = resolvedAvatar;
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(response.user));
+    localStorage.setItem(STORAGE_KEYS.avatar, appState.profileAvatarUrl);
     updateAuthUI();
   } catch (error) {
     clearSession();
@@ -330,12 +389,31 @@ function updateAuthUI() {
   const loginButtons = document.querySelectorAll(".auth-login-btn");
   const logoutButtons = document.querySelectorAll(".auth-logout-btn");
   const userChips = document.querySelectorAll("[data-auth-user]");
+  const avatarUrl = getEffectiveAvatarUrl();
 
   loginButtons.forEach((button) => button.classList.toggle("hidden", Boolean(appState.user)));
   logoutButtons.forEach((button) => button.classList.toggle("hidden", !appState.user));
   userChips.forEach((chip) => {
     chip.classList.toggle("hidden", !appState.user);
-    chip.textContent = appState.user ? `Hi, ${appState.user.name}` : "";
+    if (!appState.user) {
+      chip.classList.remove("has-avatar");
+      chip.textContent = "";
+      return;
+    }
+
+    chip.innerHTML = `
+      <span class="user-chip-avatar" aria-hidden="true"></span>
+      <span class="user-chip-label">${escapeHtml(`Hi, ${appState.user.name}`)}</span>
+    `;
+
+    const avatar = chip.querySelector(".user-chip-avatar");
+    if (avatarUrl && avatar) {
+      chip.classList.add("has-avatar");
+      avatar.style.background = `url("${avatarUrl}") center / cover no-repeat`;
+    } else {
+      chip.classList.remove("has-avatar");
+      avatar?.style.removeProperty("background");
+    }
   });
 }
 
@@ -379,13 +457,17 @@ async function initializeHomePage() {
     appState.listings = listingResponse.listings || [];
     await refreshFavoriteIds();
     renderHomeListings();
-    const heroCount = document.getElementById("heroListingsCount");
-    if (heroCount) {
-      heroCount.textContent = String(appState.listings.length);
-    }
+    updateHeroListingCount(appState.listings.length);
   } catch (error) {
     renderCollectionState("listingGrid", "Unable to load listings right now.");
     showToast(error.message, "error");
+  }
+}
+
+function updateHeroListingCount(count) {
+  const heroCount = document.getElementById("heroListingsCount");
+  if (heroCount) {
+    heroCount.textContent = String(count || 0);
   }
 }
 
@@ -616,7 +698,7 @@ function listingCardMarkup(listing, options = {}) {
   return `
     <article class="listing-card glass-card">
       <div class="listing-image">
-        <img src="${listing.imageUrl}" alt="${escapeHtml(listing.title)}" />
+        <img src="${listing.imageUrl}" alt="${escapeHtml(listing.title)}" loading="lazy" decoding="async" />
       </div>
       <div class="listing-body">
         <div class="badge-row">
@@ -789,8 +871,13 @@ async function initializeDetailsPage() {
   try {
     const response = await api(`/api/listings/${listingId}`);
     appState.currentListing = response.listing;
-    await refreshFavoriteIds();
     renderDetailsPage();
+    refreshFavoriteIds().then(() => {
+      const favoriteButton = document.querySelector("#listingDetails [data-favorite-id]");
+      if (favoriteButton && appState.currentListing) {
+        favoriteButton.classList.toggle("active", appState.favorites.has(appState.currentListing.id));
+      }
+    });
   } catch (error) {
     if (shell) {
       shell.innerHTML = emptyStateMarkup("Unable to load this listing", error.message);
@@ -847,7 +934,7 @@ function renderDetailsPage() {
     <div class="detail-layout">
       <div class="detail-stack">
         <div class="detail-gallery glass-inset">
-          <img src="${listing.imageUrl}" alt="${escapeHtml(listing.title)}" />
+          <img src="${listing.imageUrl}" alt="${escapeHtml(listing.title)}" loading="eager" decoding="async" />
         </div>
         <div class="detail-panel">
           <span class="eyebrow">Listing details</span>
@@ -1087,8 +1174,19 @@ async function initializeProfilePage() {
   try {
     const response = await api("/api/auth/profile", { auth: true });
     const profile = response.profile || response.user?.profile || {};
+    appState.profileData = profile;
+    const incomingAvatar = String(profile.avatarUrl || "").trim();
+    const cachedAvatar = String(appState.profileAvatarUrl || localStorage.getItem(STORAGE_KEYS.avatar) || "").trim();
+    appState.profileAvatarUrl = incomingAvatar || cachedAvatar;
+    appState.profileData.avatarUrl = appState.profileAvatarUrl;
+    localStorage.setItem(STORAGE_KEYS.avatar, appState.profileAvatarUrl);
 
     if (response.user) {
+      response.user.profile = {
+        ...(response.user.profile || {}),
+        ...(appState.profileData || {}),
+      };
+      response.user.profile.avatarUrl = appState.profileAvatarUrl;
       appState.user = response.user;
       localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(response.user));
       updateAuthUI();
@@ -1097,7 +1195,6 @@ async function initializeProfilePage() {
       }
     }
 
-    appState.profileData = profile;
     appState.profileEditing = !isProfileComplete(profile);
     renderProfileSummary(profile);
     setProfileFormValues(profile);
@@ -1124,6 +1221,7 @@ function renderProfileSummary(profile) {
   }
 
   const safeProfile = profile || {};
+  const avatarUrl = String(safeProfile.avatarUrl || getEffectiveAvatarUrl()).trim();
   const profileComplete = isProfileComplete(safeProfile);
   const budgetLabel =
     safeProfile.monthlyBudget || safeProfile.monthlyBudget === 0
@@ -1136,7 +1234,13 @@ function renderProfileSummary(profile) {
   summaryCard.innerHTML = `
     <div class="profile-summary-top">
       <div class="profile-head">
-        <div class="profile-avatar">${escapeHtml(getNameInitials(appState.user?.name || "User"))}</div>
+        <div class="profile-avatar ${avatarUrl ? "has-image" : ""}">
+          ${
+            avatarUrl
+              ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(appState.user?.name || "User")} profile picture" />`
+              : escapeHtml(getNameInitials(appState.user?.name || "User"))
+          }
+        </div>
         <div>
           <h2>${escapeHtml(appState.user?.name || "Student User")}</h2>
           <p>${escapeHtml(appState.user?.email || "")}</p>
@@ -1291,6 +1395,14 @@ function setProfileFormValues(profile) {
 
     input.value = safeProfile[field] ? String(safeProfile[field]) : "";
   });
+
+  appState.pendingProfileAvatarUrl = "";
+  appState.removeProfileAvatar = false;
+  const profilePhotoFile = document.getElementById("profilePhotoFile");
+  if (profilePhotoFile) {
+    profilePhotoFile.value = "";
+  }
+  setProfilePhotoPreview(String(safeProfile.avatarUrl || getEffectiveAvatarUrl()).trim());
 }
 
 function bindProfileForm() {
@@ -1300,13 +1412,17 @@ function bindProfileForm() {
   }
 
   form.dataset.bound = "true";
+  bindProfilePhotoPicker();
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireAuth()) {
       return;
     }
 
-    const payload = Object.fromEntries(new FormData(form).entries());
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const selectedPhotoFile = formData.get("profilePhotoFile");
+    delete payload.profilePhotoFile;
     payload.name = String(payload.name || "").trim();
 
     if (!payload.name) {
@@ -1315,27 +1431,184 @@ function bindProfileForm() {
     }
 
     try {
+      let requestedAvatarUrl = "";
+      if (selectedPhotoFile instanceof File && selectedPhotoFile.size > 0) {
+        if (selectedPhotoFile.size > 5 * 1024 * 1024) {
+          showToast("Please upload a profile photo smaller than 5MB.", "error");
+          return;
+        }
+
+        payload.avatarUrl = await fileToDataUrl(selectedPhotoFile);
+        requestedAvatarUrl = String(payload.avatarUrl || "").trim();
+        appState.removeProfileAvatar = false;
+      } else if (appState.pendingProfileAvatarUrl) {
+        payload.avatarUrl = appState.pendingProfileAvatarUrl;
+        requestedAvatarUrl = String(payload.avatarUrl || "").trim();
+        appState.removeProfileAvatar = false;
+      } else if (appState.removeProfileAvatar) {
+        payload.avatarUrl = "";
+        requestedAvatarUrl = "";
+      }
+
       const response = await api("/api/auth/profile", {
         method: "PUT",
         body: payload,
         auth: true,
       });
 
+      const returnedProfile = response.profile || response.user?.profile || {};
+      const returnedAvatarUrl = String(returnedProfile.avatarUrl || "").trim();
+      const fallbackAvatarUrl = appState.removeProfileAvatar
+        ? ""
+        : returnedAvatarUrl ||
+          requestedAvatarUrl ||
+          String(appState.profileAvatarUrl || "").trim() ||
+          getEffectiveAvatarUrl();
+
+      const updatedProfile = {
+        ...returnedProfile,
+        avatarUrl: fallbackAvatarUrl,
+      };
+
       if (response.user) {
+        response.user.profile = {
+          ...(response.user.profile || {}),
+          ...updatedProfile,
+          avatarUrl: fallbackAvatarUrl,
+        };
         setSession(appState.token, response.user);
+      } else if (appState.user) {
+        appState.user.profile = {
+          ...(appState.user.profile || {}),
+          ...updatedProfile,
+          avatarUrl: fallbackAvatarUrl,
+        };
+        localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(appState.user));
       }
 
-      const updatedProfile = response.profile || response.user?.profile || {};
       appState.profileData = updatedProfile;
+      appState.profileAvatarUrl = fallbackAvatarUrl;
+      localStorage.setItem(STORAGE_KEYS.avatar, appState.profileAvatarUrl);
+      appState.removeProfileAvatar = false;
+      appState.pendingProfileAvatarUrl = "";
       appState.profileEditing = !isProfileComplete(updatedProfile);
       setProfileFormValues(updatedProfile);
       renderProfileSummary(updatedProfile);
+      updateAuthUI();
       applyProfileLayoutState();
       showToast(response.message || "Profile updated successfully.", "success");
     } catch (error) {
       showToast(error.message, "error");
     }
   });
+}
+
+function bindProfilePhotoPicker() {
+  const photoInput = document.getElementById("profilePhotoFile");
+  if (!photoInput || photoInput.dataset.bound) {
+    return;
+  }
+
+  photoInput.dataset.bound = "true";
+  photoInput.addEventListener("change", async () => {
+    const [selectedFile] = photoInput.files || [];
+    if (!selectedFile) {
+      appState.pendingProfileAvatarUrl = "";
+      setProfilePhotoPreview(getEffectiveAvatarUrl());
+      return;
+    }
+
+    if (!String(selectedFile.type || "").startsWith("image/")) {
+      showToast("Please choose a valid image file.", "error");
+      photoInput.value = "";
+      appState.pendingProfileAvatarUrl = "";
+      setProfilePhotoPreview(getEffectiveAvatarUrl());
+      return;
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      showToast("Please upload a profile photo smaller than 5MB.", "error");
+      photoInput.value = "";
+      appState.pendingProfileAvatarUrl = "";
+      setProfilePhotoPreview(getEffectiveAvatarUrl());
+      return;
+    }
+
+    try {
+      const nextAvatarDataUrl = await fileToDataUrl(selectedFile);
+      appState.pendingProfileAvatarUrl = nextAvatarDataUrl;
+      appState.removeProfileAvatar = false;
+      appState.profileData = {
+        ...(appState.profileData || {}),
+        avatarUrl: nextAvatarDataUrl,
+      };
+      appState.profileAvatarUrl = nextAvatarDataUrl;
+      localStorage.setItem(STORAGE_KEYS.avatar, appState.profileAvatarUrl);
+      if (appState.user) {
+        appState.user.profile = {
+          ...(appState.user.profile || {}),
+          avatarUrl: nextAvatarDataUrl,
+        };
+        localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(appState.user));
+      }
+      updateAuthUI();
+      renderProfileSummary(appState.profileData || {});
+      setProfilePhotoPreview(nextAvatarDataUrl);
+    } catch (error) {
+      photoInput.value = "";
+      appState.pendingProfileAvatarUrl = "";
+      setProfilePhotoPreview(getEffectiveAvatarUrl());
+      showToast(error.message, "error");
+    }
+  });
+}
+
+function removePendingProfilePhoto() {
+  appState.pendingProfileAvatarUrl = "";
+  appState.removeProfileAvatar = true;
+  appState.profileAvatarUrl = "";
+  localStorage.setItem(STORAGE_KEYS.avatar, "");
+
+  appState.profileData = {
+    ...(appState.profileData || {}),
+    avatarUrl: "",
+  };
+
+  if (appState.user) {
+    appState.user.profile = {
+      ...(appState.user.profile || {}),
+      avatarUrl: "",
+    };
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(appState.user));
+  }
+
+  const profilePhotoInput = document.getElementById("profilePhotoFile");
+  if (profilePhotoInput) {
+    profilePhotoInput.value = "";
+  }
+
+  setProfilePhotoPreview("");
+  updateAuthUI();
+  renderProfileSummary(appState.profileData || {});
+  showToast("Profile picture removed. Click Save profile to keep this change.", "success");
+}
+
+function setProfilePhotoPreview(url) {
+  const previewWrap = document.getElementById("profilePhotoPreviewWrap");
+  const previewImage = document.getElementById("profilePhotoPreview");
+  if (!previewWrap || !previewImage) {
+    return;
+  }
+
+  const source = String(url || "").trim();
+  if (!source) {
+    previewImage.src = "";
+    previewWrap.classList.add("hidden");
+    return;
+  }
+
+  previewImage.src = source;
+  previewWrap.classList.remove("hidden");
 }
 
 function profileDisplayValue(value, fallback = "Not set") {
@@ -1918,8 +2191,8 @@ async function refreshFavoriteIds() {
   }
 
   try {
-    const response = await api("/api/listings/favorites", { auth: true });
-    appState.favorites = new Set((response.favorites || []).map((listing) => listing.id));
+    const response = await api("/api/listings/favorites/ids", { auth: true });
+    appState.favorites = new Set(Array.isArray(response.favoriteIds) ? response.favoriteIds : []);
   } catch (error) {
     appState.favorites = new Set();
   }
@@ -2062,13 +2335,56 @@ function playBackButtonClickSound() {
   }
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("Unable to read the selected image file."));
-    reader.readAsDataURL(file);
-  });
+async function fileToDataUrl(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    throw new Error("Please choose a valid image file.");
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  const maxWidth = 1280;
+  const maxHeight = 960;
+  const qualitySteps = [0.82, 0.72, 0.64, 0.56];
+  let image;
+
+  try {
+    image = await new Promise((resolve, reject) => {
+      const candidate = new Image();
+      candidate.onload = () => resolve(candidate);
+      candidate.onerror = () => reject(new Error("Unable to read the selected image file."));
+      candidate.src = objectUrl;
+    });
+
+    const ratio = Math.min(1, maxWidth / image.width, maxHeight / image.height);
+    const targetWidth = Math.max(1, Math.round(image.width * ratio));
+    const targetHeight = Math.max(1, Math.round(image.height * ratio));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Unable to process the selected image.");
+    }
+
+    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+    let output = canvas.toDataURL("image/jpeg", qualitySteps[0]);
+    for (const quality of qualitySteps.slice(1)) {
+      if (output.length <= 1_600_000) {
+        break;
+      }
+      output = canvas.toDataURL("image/jpeg", quality);
+    }
+
+    if (output.length > 2_400_000) {
+      throw new Error("Image is too large. Please choose a smaller image.");
+    }
+
+    return output;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 async function api(url, options = {}) {

@@ -10,13 +10,19 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/style.css?v=20260410-mobile1" />
   </head>
   <body data-page="profile">
     <div class="header-shell">
       <button class="nav-back-btn glass-card" data-nav-back type="button">Back</button>
+      <a href="/" class="brand-mark" aria-label="Where Is My Room ?">
+        <span class="brand-icon" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span>Where Is</span>
+          <span>My Room ?</span>
+        </span>
+      </a>
       <header class="site-header glass-card">
-      <a href="/" class="brand-mark">Where Is My Room ?</a>
       <nav class="nav-links">
         <a href="/" class="nav-link">Home</a>
         <a href="/post" class="nav-link">Post</a>
@@ -71,6 +77,32 @@
                 <span>Phone number</span>
                 <input type="text" name="phone" placeholder="+91 98765 43210" />
               </label>
+            </div>
+
+            <div class="glass-inset profile-photo-field">
+              <div class="profile-photo-field-header">
+                <span class="eyebrow">Display picture</span>
+                <span class="soft-badge">Visible in navbar + profile card</span>
+              </div>
+              <div class="profile-photo-field-body">
+                <div id="profilePhotoPreviewWrap" class="image-preview-wrap profile-photo-preview-wrap hidden">
+                  <img id="profilePhotoPreview" alt="Profile photo preview" />
+                </div>
+                <div class="profile-photo-field-inputs">
+                  <div class="profile-photo-actions">
+                    <label class="btn btn-secondary profile-photo-upload-btn" for="profilePhotoFile">
+                      Choose from device
+                    </label>
+                    <button class="btn btn-danger profile-photo-remove-btn" type="button" data-remove-profile-photo>
+                      Remove profile picture
+                    </button>
+                  </div>
+                  <input id="profilePhotoFile" name="profilePhotoFile" type="file" accept="image/*" />
+                  <p class="upload-hint">
+                    Your profile picture stays saved until you choose a new one.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div class="inline-fields">
@@ -253,6 +285,6 @@
 
     <div class="toast-stack" id="toastContainer"></div>
 
-    <script src="/script.js"></script>
+    <script src="/script.js?v=20260410-mobile1"></script>
   </body>
 </html>

@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const path = require("path");
 const express = require("express");
+const compression = require("compression");
 const DataStore = require("./models/dataStore");
 const createAuthMiddleware = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
@@ -14,6 +15,19 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "pg-roommate-finder-secret";
 const FRONTEND_DIR = path.resolve(__dirname, "../frontend");
 
+function staticAssetHeaders(res, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+
+  if (ext === ".html") {
+    res.setHeader("Cache-Control", "no-cache");
+    return;
+  }
+
+  if ([".css", ".js", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico"].includes(ext)) {
+    res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+  }
+}
+
 async function start() {
   const app = express();
   const store = new DataStore();
@@ -21,9 +35,16 @@ async function start() {
 
   await store.init();
 
+  app.use(compression());
   app.use(express.json({ limit: "15mb" }));
   app.use(express.urlencoded({ extended: true, limit: "15mb" }));
-  app.use(express.static(FRONTEND_DIR));
+  app.use(
+    express.static(FRONTEND_DIR, {
+      etag: true,
+      lastModified: true,
+      setHeaders: staticAssetHeaders,
+    })
+  );
 
   app.get("/health", (req, res) => {
     res.json({ status: "ok" });
