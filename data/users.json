@@ -162,5 +162,63 @@
       "accountEmail": "samijijsih@gmail.com"
     },
     "createdAt": "2026-04-08T22:29:23.129Z"
+  },
+  {
+    "id": "99a53af9-51a3-43eb-9e4c-4da3cac32583",
+    "name": "sourav upadhyay",
+    "email": "souravupadhyay420@gmail.comsourav123",
+    "passwordHash": "$2a$10$DrLef/fNTTSyvaJS7rDuwu8JQKFVh9YdBKAmyG97/wYF5SGIL1leW",
+    "favoriteListings": [
+      "listing-seed-2"
+    ],
+    "profile": {
+      "phone": "",
+      "college": "",
+      "course": "",
+      "yearOfStudy": "",
+      "preferredLocation": "",
+      "monthlyBudget": null,
+      "gender": "",
+      "foodPreference": "",
+      "sleepSchedule": "",
+      "smokingPreference": "",
+      "cleanlinessLevel": "",
+      "hobbies": "",
+      "aboutMe": "Hi, I am sourav upadhyay. I am currently looking for the right PG and roommate match.",
+      "emergencyContactName": "",
+      "emergencyContactPhone": "",
+      "updatedAt": "2026-04-09T07:45:46.832Z",
+      "accountEmail": "souravupadhyay420@gmail.comsourav123"
+    },
+    "createdAt": "2026-04-09T07:45:46.832Z"
+  },
+  {
+    "id": "bf796fdd-246e-4e8f-a1d7-011686caae1a",
+    "name": "Prakas Das",
+    "email": "prakashrohisas16@gmail.com",
+    "passwordHash": "$2a$10$nbL3LuWSZAC9stOPpa4CiOFWQMhK/dR6Lk2eYxdovcEr.M39x9gzW",
+    "favoriteListings": [
+      "f79f0975-0908-429c-8f00-e52ecb742c12"
+    ],
+    "profile": {
+      "phone": "290000000",
+      "college": "nit",
+      "course": "btech",
+      "yearOfStudy": "1st Year",
+      "preferredLocation": "Rourkela",
+      "monthlyBudget": 10000,
+      "gender": "Male",
+      "foodPreference": "Vegetarian",
+      "sleepSchedule": "Flexible",
+      "smokingPreference": "Non-smoking",
+      "cleanlinessLevel": "Moderately neat",
+      "hobbies": "gym",
+      "aboutMe": "Hi, I am Prakas Das. I am currently looking for the right PG and roommate match.",
+      "emergencyContactName": "parent",
+      "emergencyContactPhone": "466786899",
+      "updatedAt": "2026-04-09T09:17:33.343Z",
+      "accountEmail": "prakashrohisas16@gmail.com"
+    },
+    "createdAt": "2026-04-09T09:14:56.356Z"
   }
 ]
