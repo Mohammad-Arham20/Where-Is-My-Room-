@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
 const SESSION_KEYS = {
   suppressBackOnNextPage: "pgSuppressBackOnNextPage",
   navPageTransition: "pgNavPageTransition",
+  bubbleBackgroundState: "pgBubbleBackgroundStateV1",
 };
 
 const appState = {
@@ -31,12 +32,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateBackButtonVisibility();
   bindAuthForms();
   updateAuthUI();
+  initAnimatedBackground();
   await restoreSession();
   await initializeCurrentPage();
   applyNavPageTransition();
-  window.setTimeout(() => {
-    initAnimatedBackground();
-  }, 160);
 });
 
 function readStoredUser() {
@@ -106,32 +105,134 @@ function initAnimatedBackground() {
   const isMobileViewport = window.matchMedia("(max-width: 760px)").matches;
   const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
   const mobileMode = isMobileViewport || hasCoarsePointer;
+  const hardwareThreads = Number(window.navigator.hardwareConcurrency || 4);
+  const deviceMemoryGb = Number(window.navigator.deviceMemory || 4);
+  const lowPowerMode = mobileMode || hardwareThreads <= 4 || deviceMemoryGb <= 4;
 
-  const bubbleCount = mobileMode ? 18 : 40;
-  const sizeMin = mobileMode ? 16 : 22;
-  const sizeMax = mobileMode ? 58 : 90;
-  const durationMin = mobileMode ? 22 : 18;
-  const durationMax = mobileMode ? 42 : 38;
-  const opacityMin = mobileMode ? 0.12 : 0.16;
-  const opacityMax = mobileMode ? 0.3 : 0.42;
+  const bubbleCount = mobileMode ? 40 : lowPowerMode ? 62 : 90;
+  const largeSizeMin = mobileMode ? 14 : 18;
+  const largeSizeMax = mobileMode ? 44 : 70;
+  const smallSizeMin = mobileMode ? 6 : 8;
+  const smallSizeMax = mobileMode ? 15 : 21;
+  const durationMin = mobileMode ? 28 : lowPowerMode ? 24 : 20;
+  const durationMax = mobileMode ? 56 : lowPowerMode ? 50 : 46;
+  const opacityMin = mobileMode ? 0.16 : 0.14;
+  const opacityMax = mobileMode ? 0.48 : 0.44;
+  const smallRatio = lowPowerMode ? 0.68 : 0.64;
+
+  const backgroundProfile = mobileMode ? "mobile" : "desktop";
+  const backgroundState = getOrCreateBubbleBackgroundState(backgroundProfile, {
+    bubbleCount,
+    largeSizeMin,
+    largeSizeMax,
+    smallSizeMin,
+    smallSizeMax,
+    durationMin,
+    durationMax,
+    opacityMin,
+    opacityMax,
+    smallRatio,
+  });
+  const elapsedSeconds = Math.max(0, (Date.now() - Number(backgroundState.startedAt || Date.now())) / 1000);
 
   const field = document.createElement("div");
-  field.className = "bubble-field";
+  field.className = `bubble-field${lowPowerMode ? " bubble-field-lite" : ""}`;
   const fragment = document.createDocumentFragment();
 
-  for (let index = 0; index < bubbleCount; index += 1) {
+  for (let index = 0; index < backgroundState.bubbles.length; index += 1) {
+    const bubbleConfig = backgroundState.bubbles[index];
+    const isSmall = Boolean(bubbleConfig.isSmall);
     const bubble = document.createElement("span");
-    bubble.className = "bubble";
-    bubble.style.setProperty("--size", `${randomBetween(sizeMin, sizeMax)}px`);
-    bubble.style.setProperty("--left", `${randomBetween(0, 100)}%`);
-    bubble.style.setProperty("--duration", `${randomBetween(durationMin, durationMax)}s`);
-    bubble.style.setProperty("--delay", `${randomBetween(-24, 0)}s`);
-    bubble.style.setProperty("--opacity", `${randomBetween(opacityMin, opacityMax)}`);
+    bubble.className = isSmall ? "bubble bubble-small" : "bubble";
+    const duration = Number(bubbleConfig.duration) || randomBetween(durationMin, durationMax);
+    const phase = Number(bubbleConfig.phase) || 0;
+    const continuedDelay = -((elapsedSeconds + phase) % Math.max(duration, 0.01));
+
+    bubble.style.setProperty("--size", `${bubbleConfig.size}px`);
+    bubble.style.setProperty("--left", `${bubbleConfig.left}%`);
+    bubble.style.setProperty("--duration", `${duration}s`);
+    bubble.style.setProperty("--delay", `${continuedDelay}s`);
+    bubble.style.setProperty("--opacity", `${bubbleConfig.opacity}`);
+    bubble.style.setProperty("--drift-start", `${bubbleConfig.driftStart}px`);
+    bubble.style.setProperty("--drift-mid", `${bubbleConfig.driftMid}px`);
+    bubble.style.setProperty("--drift-end", `${bubbleConfig.driftEnd}px`);
+    bubble.style.setProperty("--scale-start", `${bubbleConfig.scaleStart}`);
+    bubble.style.setProperty("--scale-mid", `${bubbleConfig.scaleMid}`);
+    bubble.style.setProperty("--scale-end", `${bubbleConfig.scaleEnd}`);
     fragment.appendChild(bubble);
   }
 
   field.appendChild(fragment);
   document.body.appendChild(field);
+
+  if (!document.body.dataset.bgVisibilityBound) {
+    document.body.dataset.bgVisibilityBound = "true";
+    document.addEventListener("visibilitychange", () => {
+      document.body.classList.toggle("bg-paused", document.hidden);
+    });
+  }
+}
+
+function getOrCreateBubbleBackgroundState(profile, config) {
+  const stateKey = SESSION_KEYS.bubbleBackgroundState;
+  const now = Date.now();
+  const fallback = {
+    version: 1,
+    profile,
+    startedAt: now,
+    bubbles: [],
+  };
+
+  let savedState = null;
+  try {
+    const raw = sessionStorage.getItem(stateKey);
+    savedState = raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    savedState = null;
+  }
+
+  const isReusable =
+    savedState &&
+    savedState.version === 1 &&
+    savedState.profile === profile &&
+    Array.isArray(savedState.bubbles) &&
+    savedState.bubbles.length === config.bubbleCount;
+
+  if (isReusable) {
+    return savedState;
+  }
+
+  for (let index = 0; index < config.bubbleCount; index += 1) {
+    const isSmall = Math.random() < config.smallRatio;
+    fallback.bubbles.push({
+      isSmall,
+      size: randomBetween(
+        isSmall ? config.smallSizeMin : config.largeSizeMin,
+        isSmall ? config.smallSizeMax : config.largeSizeMax
+      ),
+      left: randomBetween(0, 100),
+      duration: randomBetween(config.durationMin, config.durationMax),
+      phase: randomBetween(0, config.durationMax),
+      opacity: randomBetween(
+        isSmall ? Math.max(config.opacityMin, 0.2) : config.opacityMin,
+        isSmall ? Math.min(config.opacityMax + 0.06, 0.54) : config.opacityMax
+      ),
+      driftStart: randomBetween(-8, 8),
+      driftMid: randomBetween(-42, 42),
+      driftEnd: randomBetween(-34, 34),
+      scaleStart: randomBetween(0.78, 0.96),
+      scaleMid: randomBetween(0.9, 1.08),
+      scaleEnd: randomBetween(1.02, 1.18),
+    });
+  }
+
+  try {
+    sessionStorage.setItem(stateKey, JSON.stringify(fallback));
+  } catch (error) {
+    // Ignore storage limits; use in-memory generated state for this page.
+  }
+
+  return fallback;
 }
 
 function randomBetween(min, max) {
