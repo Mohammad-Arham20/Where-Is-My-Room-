@@ -2936,6 +2936,7 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     width: 100%;
     display: block;
     box-shadow: 0 12px 20px rgba(2, 18, 17, 0.3);
+    position: static;
   }
 
   .site-header .nav-links {
@@ -2961,8 +2962,8 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
 
   .site-header .nav-actions {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 9px;
+    right: 10px;
     width: auto;
     margin: 0;
     overflow: visible;
@@ -2975,6 +2976,12 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     background: linear-gradient(135deg, rgba(8, 52, 48, 0.78), rgba(10, 45, 42, 0.72));
     border: 1px solid rgba(145, 223, 212, 0.32);
     box-shadow: 0 8px 16px rgba(2, 16, 15, 0.32);
+  }
+
+  .header-shell .nav-actions {
+    position: absolute;
+    top: 9px;
+    right: 10px;
   }
 
   .site-header .user-chip {
