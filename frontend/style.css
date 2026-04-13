@@ -2984,16 +2984,21 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     min-width: 39px;
     height: 39px;
     min-height: 39px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
     padding: 0;
     justify-content: center;
     gap: 0;
+    overflow: hidden;
   }
 
   .header-shell > .nav-actions.mobile-header-actions .user-chip .user-chip-avatar {
+    display: block;
     width: 30px;
     height: 30px;
-    flex-basis: 30px;
+    flex: 0 0 30px;
     border-radius: 50%;
     background-size: cover;
     background-position: center;
