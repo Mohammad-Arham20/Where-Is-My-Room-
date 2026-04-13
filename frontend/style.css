@@ -2994,6 +2994,25 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     width: 30px;
     height: 30px;
     flex-basis: 30px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background:
+      radial-gradient(circle at 34% 30%, rgba(243, 220, 158, 0.95), rgba(201, 151, 62, 0.9) 68%),
+      radial-gradient(circle at 60% 70%, rgba(38, 57, 45, 0.64), rgba(38, 57, 45, 0));
+    border: 1px solid rgba(245, 225, 176, 0.88);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 248, 225, 0.5),
+      0 6px 12px rgba(45, 47, 20, 0.26);
+  }
+
+  .header-shell > .nav-actions.mobile-header-actions .user-chip.has-avatar .user-chip-avatar {
+    border-color: rgba(255, 249, 227, 0.92);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 248, 225, 0.5),
+      0 6px 12px rgba(45, 47, 20, 0.32),
+      0 0 0 1px rgba(74, 90, 45, 0.18);
   }
 
   .header-shell > .nav-actions.mobile-header-actions .user-chip .user-chip-label {
