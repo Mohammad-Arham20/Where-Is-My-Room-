@@ -28,6 +28,7 @@ const appState = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
+  syncMobileHeaderLayout();
   bindGlobalInteractions();
   updateBackButtonVisibility();
   bindAuthForms();
@@ -412,6 +413,38 @@ function updateBackButtonVisibility() {
 
   if (shouldSuppress) {
     sessionStorage.removeItem(SESSION_KEYS.suppressBackOnNextPage);
+  }
+}
+
+function syncMobileHeaderLayout() {
+  const headerShell = document.querySelector(".header-shell");
+  const siteHeader = headerShell?.querySelector(".site-header");
+  if (!headerShell || !siteHeader) {
+    return;
+  }
+
+  const navActions = headerShell.querySelector(".nav-actions");
+  if (!navActions) {
+    return;
+  }
+
+  const isMobile = window.matchMedia("(max-width: 760px)").matches;
+
+  if (isMobile) {
+    if (navActions.parentElement !== headerShell) {
+      headerShell.insertBefore(navActions, siteHeader);
+    }
+    navActions.classList.add("mobile-header-actions");
+  } else {
+    if (navActions.parentElement !== siteHeader) {
+      siteHeader.appendChild(navActions);
+    }
+    navActions.classList.remove("mobile-header-actions");
+  }
+
+  if (!document.body.dataset.mobileHeaderSyncBound) {
+    document.body.dataset.mobileHeaderSyncBound = "true";
+    window.addEventListener("resize", syncMobileHeaderLayout, { passive: true });
   }
 }
 

@@ -2960,12 +2960,13 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     justify-content: center;
   }
 
-  .site-header .nav-actions {
+  .header-shell > .nav-actions.mobile-header-actions {
     position: absolute;
-    top: 9px;
+    top: 8px;
     right: 10px;
     width: auto;
     margin: 0;
+    display: inline-flex;
     overflow: visible;
     gap: 6px;
     padding: 6px 7px;
@@ -2978,13 +2979,7 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     box-shadow: 0 8px 16px rgba(2, 16, 15, 0.32);
   }
 
-  .header-shell .nav-actions {
-    position: absolute;
-    top: 9px;
-    right: 10px;
-  }
-
-  .site-header .user-chip {
+  .header-shell > .nav-actions.mobile-header-actions .user-chip {
     width: 39px;
     min-width: 39px;
     height: 39px;
@@ -2995,17 +2990,17 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     gap: 0;
   }
 
-  .site-header .user-chip .user-chip-avatar {
+  .header-shell > .nav-actions.mobile-header-actions .user-chip .user-chip-avatar {
     width: 30px;
     height: 30px;
     flex-basis: 30px;
   }
 
-  .site-header .user-chip .user-chip-label {
+  .header-shell > .nav-actions.mobile-header-actions .user-chip .user-chip-label {
     display: none !important;
   }
 
-  .site-header .auth-login-btn {
+  .header-shell > .nav-actions.mobile-header-actions .auth-login-btn {
     min-height: 36px;
     max-width: 124px;
     padding: 6px 10px;
@@ -3015,7 +3010,7 @@ body[data-page="dashboard"] .dashboard-tabs .tab-btn.active {
     text-overflow: ellipsis;
   }
 
-  .site-header .btn-ghost {
+  .header-shell > .nav-actions.mobile-header-actions .btn-ghost {
     min-height: 36px;
     padding: 6px 10px;
     font-size: 0.82rem;
